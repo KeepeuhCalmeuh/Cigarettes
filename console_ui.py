@@ -165,7 +165,8 @@ class ConsoleUI:
             try:
                 set_nickname(fingerprint, new_name)
                 print(f"Updated {fingerprint} peer name: {new_name}")
-                self.connection.send_message(f"[INFO] Peer renamed you as {new_name}.")
+                if self.connection.connected and self.connection.peer_fingerprint == fingerprint:
+                    self.connection.send_message(f"[INFO] Peer renamed you as {new_name}.")
             except Exception as e:
                 print(f"Error while renaming: {e}")
 
@@ -179,6 +180,20 @@ class ConsoleUI:
                 add_host(ip_port, fingerprint)
             except Exception as e:
                 print(f"Error adding host: {e}")
+        
+        elif command.startswith("/removehost "):
+            parts = command.split(" ", 1)
+            if len(parts) != 2:
+                print("Usage: /removehost <ip:port>")
+                return
+            ip_port = parts[1]
+            try:
+                if self.connection.connected:
+                    self.connection.send_message(f"[INFO] Peer removed you from known hosts.")
+                add_host(ip_port, None)  # Remove host by setting fingerprint to None
+                print(f"Host {ip_port} removed from known hosts.")
+            except Exception as e:
+                print(f"Error removing host: {e}")
 
         else:
             print(f"Unknown command. Type /help for a list of commands.")

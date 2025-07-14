@@ -4,6 +4,7 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 import os
 from cryptography.hazmat.primitives import serialization
+from colorama import Fore, Style
 
 
 class CryptoManager:
@@ -59,7 +60,7 @@ class CryptoManager:
         """Calculates the SHA256 fingerprint of the public key"""
         digest = hashes.Hash(hashes.SHA256())
         digest.update(self.get_public_bytes())
-        return digest.finalize().hex()
+        return Fore.BLUE + digest.finalize().hex() + Style.RESET_ALL
 
     def _derive_session_key(self):
         """Derive the session key after the key exchange"""

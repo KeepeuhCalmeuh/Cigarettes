@@ -5,12 +5,11 @@ Tracking planned improvements to the Cigarettes app.
 ---
 
 ##  urgent
-- [ ] Release with a complited version and a verification of the hash.
+- [ ] Release with a compiled version and a verification of the hash.
 
 
 ## 🔐 Security
 
-- [ ] Re-enable automatic session key rotation (ECDH stable)
 - [ ] Add automatic session expiration after inactivity
 - [ ] Add a temporary password (OTP-like) to strengthen connections
 - [ ] Support for post-quantum signatures (e.g., Dilithium)
@@ -22,9 +21,9 @@ Tracking planned improvements to the Cigarettes app.
 
 - [ ] Persistent history between sessions
 - [ ] Support for multi-line text (multi-line input)
-- [ ] Display nicknames in all received/sent messages
 - [ ] Encrypted file transfer (optional)
 - [ ] Message compression (e.g., gzip or zlib)
+- [ ] Add Group Features
 
 ---
 
