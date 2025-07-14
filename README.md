@@ -68,6 +68,7 @@ For example: `/connect 192.168.1.2 5000`
 - `/rename <fingerprint> <new_name>`: Rename a peer in known hosts
 - `/addHost <ip:port> <fingerprint>`: Add a host to known hosts
 - `/listHosts`: List all known hosts
+- `/multiline`: Toggle multi-line message mode (use Shift+Enter for new line, Enter to send)
 - `/help`: Displays command help
 - `/exit`: Exits the application
 

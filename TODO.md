@@ -4,7 +4,7 @@ Tracking planned improvements to the Cigarettes app.
 
 ---
 
-##  urgent
+## Needed to release
 - [ ] Release with a compiled version and a verification of the hash.
 
 
@@ -20,7 +20,6 @@ Tracking planned improvements to the Cigarettes app.
 ## 💬 Messaging Features
 
 - [ ] Persistent history between sessions
-- [ ] Support for multi-line text (multi-line input)
 - [ ] Encrypted file transfer (optional)
 - [ ] Message compression (e.g., gzip or zlib)
 - [ ] Add Group Features
