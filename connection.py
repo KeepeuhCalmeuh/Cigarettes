@@ -7,10 +7,12 @@ from crypto_utils import CryptoManager
 from datetime import datetime, timedelta 
 from known_hosts_manager import get_nickname 
 import os
+from colorama import Fore, Style
+
 
 class P2PConnection:
     # Constants for connection renewal
-    RENEW_AFTER_MESSAGES = 9 # Renew connection after 10 messages
+    RENEW_AFTER_MESSAGES = 10 # Renew connection after 10 messages
     RENEW_AFTER_MINUTES = 2   # Renew connection after 2 minutes
 
     def __init__(self, listen_port: int, message_callback: Callable[[str], None]):
@@ -255,10 +257,10 @@ class P2PConnection:
         if is_known_by_ip_port:
             expected_fingerprint = known_hosts["hosts"][f"{peer_ip}:{peer_port}"]
             if expected_fingerprint != peer_fingerprint:
-                self.message_callback(f"[SECURITY] WARNING: The peer key for {peer_ip}:{peer_port} has changed! Connection refused.")
+                self.message_callback(Fore.RED + f"[SECURITY] WARNING: The peer key for {peer_ip}:{peer_port} has changed! Connection refused."+ Style.RESET_ALL)
                 return False
             else:
-                self.message_callback(f"[TOFU] Known peer {peer_ip}:{peer_port} verified.")
+                self.message_callback(Fore.LIGHTGREEN_EX + f"[TOFU] Known peer {peer_ip}:{peer_port} verified." + Style.RESET_ALL)
                 return True
         
         # If exact IP:Port not known, try to match by fingerprint if a known fingerprint for that IP exists
@@ -271,12 +273,12 @@ class P2PConnection:
             if stored_ip == peer_ip and stored_fingerprint == peer_fingerprint:
                 # If we find the correct fingerprint for the same IP, allow it even if port differs.
                 # This makes TOFU less strict about the port, but still strict on IP+fingerprint.
-                self.message_callback(f"[TOFU] Known peer {peer_ip} with fingerprint matched (different port {peer_port}). Verified.")
+                self.message_callback(Fore.LIGHTGREEN_EX +f"[TOFU] Known peer {peer_ip} with fingerprint matched (different port {peer_port}). Verified."+ Style.RESET_ALL)
                 return True
         
         # If no matching IP:Port OR IP+Fingerprint found in known_hosts, refuse.
-        self.message_callback(f"[SECURITY] UNKNOWN peer {peer_ip}:{peer_port} attempted connection. Connection refused. "
-                              f"Peer fingerprint: {peer_fingerprint}. Please add it to known_hosts.json manually if desired.")
+        self.message_callback(Fore.LIGHTRED_EX + f"[SECURITY] UNKNOWN peer {peer_ip}:{peer_port} attempted connection. Connection refused. "
+                              f"Peer fingerprint: {peer_fingerprint}. Please add it to known_hosts.json manually if desired." + Style.RESET_ALL)
         return False # Reject unknown hosts or changed fingerprints
 
     def _initialize_renewal_trackers(self):
@@ -291,14 +293,14 @@ class P2PConnection:
 
             # Check message count
             if self._message_count >= self.RENEW_AFTER_MESSAGES:
-                self.message_callback(f"[SECURITY] Message limit ({self.RENEW_AFTER_MESSAGES}) reached. Initiating connection renewal.")
+                self.message_callback(Fore.LIGHTYELLOW_EX + f"[SECURITY] Message limit ({self.RENEW_AFTER_MESSAGES}) reached. Initiating connection renewal." + Style.RESET_ALL)
                 should_reconnect = True
 
             # Check time elapsed
             if self._last_renewal_time:
                 time_elapsed = datetime.now() - self._last_renewal_time
                 if time_elapsed.total_seconds() >= self.RENEW_AFTER_MINUTES * 60:
-                    self.message_callback(f"[SECURITY] Time limit ({self.RENEW_AFTER_MINUTES} minutes) reached. Initiating connection renewal.")
+                    self.message_callback(Fore.LIGHTYELLOW_EX + f"[SECURITY] Time limit ({self.RENEW_AFTER_MINUTES} minutes) reached. Initiating connection renewal." + Style.RESET_ALL)
                     should_reconnect = True
             
             if should_reconnect:
@@ -313,7 +315,7 @@ class P2PConnection:
 
     def _trigger_reconnection(self):
         """Stops the current connection and attempts to re-establish it."""
-        self.message_callback("[RENEWAL] Initiating connection renewal: Disconnecting and reconnecting...")
+        self.message_callback(Fore.LIGHTYELLOW_EX +  "[RENEWAL] Initiating connection renewal: Disconnecting and reconnecting..." + Style.RESET_ALL)
         
         # Capture current peer details before stopping the connection
         current_peer_details = self._peer_connection_details
@@ -328,7 +330,7 @@ class P2PConnection:
         # Attempt to reconnect
         if current_peer_details:
             peer_ip, peer_port = current_peer_details
-            self.message_callback(f"[RENEWAL] Attempting to re-establish connection with {peer_ip}:{peer_port}...")
+            self.message_callback(Fore.LIGHTYELLOW_EX + f"[RENEWAL] Attempting to re-establish connection with {peer_ip}:{peer_port}..." + Style.RESET_ALL)
             
             try:
                 if current_is_server_mode:
@@ -339,9 +341,9 @@ class P2PConnection:
                     # If we were a client, try to connect to the peer again
                     success = self.connect_to_peer(peer_ip, peer_port)
                     if success:
-                        self.message_callback("[RENEWAL] Connection successfully re-established.")
+                        self.message_callback(Fore.LIGHTGREEN_EX + "[RENEWAL] Connection successfully re-established." + Style.RESET_ALL)
                     else:
-                        self.message_callback("[RENEWAL] Failed to re-establish connection.")
+                        self.message_callback(Fore.LIGHTRED_EX + "[RENEWAL] Failed to re-establish connection." + Style.RESET_ALL)
             except Exception as e:
                 self.message_callback(f"[RENEWAL] Error during re-establishment: {str(e)}")
         else:
@@ -385,7 +387,7 @@ class P2PConnection:
                 
                 decrypted = self.crypto.decrypt_message(encrypted_data)
                 now = datetime.now().strftime("%H:%M:%S")
-                self.message_callback(f"{peer_name} | {now}> {decrypted}")
+                self.message_callback(Fore.YELLOW + f"[{peer_name} | {now}] {decrypted}"+ Style.RESET_ALL)
                 
                 # Increment message count for received messages
                 self._message_count += 1

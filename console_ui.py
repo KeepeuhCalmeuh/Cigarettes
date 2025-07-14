@@ -5,6 +5,7 @@ from connection import P2PConnection
 from datetime import datetime
 from known_hosts_manager import get_nickname, set_nickname, add_host, list_known_hosts
 import os
+from colorama import Fore, Style
 
 try:
     import keyboard
@@ -31,14 +32,11 @@ class ConsoleUI:
         print("  /rename <fingerprint> <new_name>           - Rename a peer in known hosts")
         print("  /addHost <ip:port> <fingerprint>           - Add a host to known hosts")
         print("  /listHosts                                 - List all known hosts")
-        if KEYBOARD_AVAILABLE:
-            print("  /multiline                                 - Toggle multi-line message mode (use Shift+Enter for new line, Enter to send)")
+        print("  /multiline                                 - Toggle multi-line message mode (use Shift+Enter for new line, Enter to send, CANCEL to cancel)")
         print("  /help                                      - Displays this help")
         print("  /exit                                      - Exit the application")
 
         print("\nTo send a message, simply type it and press Enter.")
-        if KEYBOARD_AVAILABLE:
-            print("Use /multiline to toggle multi-line mode (Shift+Enter for new line, Enter to send).")
         print("Waiting for connection on the specified port...\n")
 
     def handle_message(self, message: str):
@@ -47,16 +45,16 @@ class ConsoleUI:
         # Handle multi-line received messages
         if '\n' in message:
             lines = message.split('\n')
-            line = f"[{now}] {lines[0]}"
+            line = f"{lines[0]}"
             print(f"\n{line}")
             for additional_line in lines[1:]:
                 print(f"{'':>10} {additional_line}")
             
             # Save to history with proper formatting
-            history_entry = f"[{now}] {message}"
+            history_entry = f"{message}"
             self.history.append(history_entry)
         else:
-            line = f"[{now}] {message}"
+            line = f"{message}"
             print(f"\n{line}")
             self.history.append(line)
         
@@ -249,11 +247,11 @@ class ConsoleUI:
         # Display the message
         if '\n' in message:
             lines = message.split('\n')
-            print(f"[You | {now}] {lines[0]}")
+            print(Fore.YELLOW + f"[You | {now}] {lines[0]}" + Style.RESET_ALL)
             for line in lines[1:]:
                 print(f"{'':>15} {line}")
         else:
-            print(f"[You | {now}] {message}")
+            print(Fore.YELLOW + f"[You | {now}] {message}" + Style.RESET_ALL)
         
         # Add to history
         history_entry = f"[You | {now}] {message}"
