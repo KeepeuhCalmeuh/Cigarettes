@@ -10,17 +10,14 @@ Tracking planned improvements to the Cigarettes app.
 
 ## 🔐 Security
 
-- [ ] Add automatic session expiration after inactivity
-- [ ] Add a temporary password (OTP-like) to strengthen connections
+- [ ] Add a password to access the user private key.
 - [ ] Support for post-quantum signatures (e.g., Dilithium)
-- [ ] "Ephemeral message" option (self-destructs after X minutes)
 
 ---
 
 ## 💬 Messaging Features
 
-- [ ] Persistent history between sessions
-- [ ] Encrypted file transfer (optional)
+- [ ] Encrypted file transfer
 - [ ] Message compression (e.g., gzip or zlib)
 - [ ] Add Group Features
 
@@ -28,7 +25,6 @@ Tracking planned improvements to the Cigarettes app.
 
 ## 🌐 Connectivity
 
-- [ ] Automatic reconnection after loss of Connection
 - [ ] Peer-to-peer latency ping
 - [ ] Automatic peer discovery on the local network (mDNS or UDP broadcast)
 - [ ] Connection via Tor or SOCKS5 proxy
@@ -52,21 +48,11 @@ Tracking planned improvements to the Cigarettes app.
 
 ---
 
-## 🎓 Educational / Bonus
-
-- [ ] MITM attack detection training mode
-- [ ] Attacker simulation mode (MITM/Key spoofing) with warning
-- [ ] Addition of a cryptographic mini-game (encrypted exchange challenge)
-
----
-
 ## 🧪 Testing & Reliability
 
 - [ ] Add unit tests for encryption and key management
-- [ ] Automated tests for commands (`/connect`, `/rename`, etc.)
-- [ ] Validation of key and fingerprint formats
 - [ ] Network testing between multiple machines with logs
 
 ---
 
-**Last updated:** `10/07/25`
+**Last updated:** `14/07/25`
