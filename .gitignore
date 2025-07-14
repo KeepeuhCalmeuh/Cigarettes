@@ -1,0 +1,8 @@
+__pycache__
+.venv
+history
+user_private_key.pem
+user_public_key.pem
+known_hosts.json
+.vscode
+note.txt
