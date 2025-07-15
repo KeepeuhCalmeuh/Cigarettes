@@ -66,6 +66,7 @@ For example: `/connect 192.168.1.2 5000`
 - `/connect <ip> <port>`: Connects to a remote peer
 - `/stop`: Disconnects the connection with the peer without exiting the application
 - `/save`: Saves the chat history to a text file (`history` folder)
+- `/ping`: Display the ping between you and your peer.
 - `/fingerprint`: Displays your public key fingerprint
 - `/rename <fingerprint> <new_name>`: Rename a peer in known hosts
 - `/addHost <ip:port> <fingerprint>`: Add a host to known hosts

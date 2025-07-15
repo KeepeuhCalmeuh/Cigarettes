@@ -25,7 +25,6 @@ Tracking planned improvements to the Cigarettes app.
 
 ## 🌐 Connectivity
 
-- [ ] Peer-to-peer latency ping
 - [ ] Automatic peer discovery on the local network (mDNS or UDP broadcast)
 - [ ] Connection via Tor or SOCKS5 proxy
 

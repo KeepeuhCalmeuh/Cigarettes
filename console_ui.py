@@ -28,9 +28,11 @@ class ConsoleUI:
         print("  /connect <ip> <port>                       - Connect to a remote peer")
         print("  /stop                                      - Disconnect from the peer without exiting the application")
         print("  /save                                      - Save the discussion history to a .txt file")
+        print("  /ping                                      - Ping the connected peer and display response time")
         print("  /fingerprint                               - Displays the fingerprint of your public key")
         print("  /rename <fingerprint> <new_name>           - Rename a peer in known hosts")
         print("  /addHost <ip:port> <fingerprint>           - Add a host to known hosts")
+        print("  /removehost <ip:port>                      - Remove a host from known hosts")
         print("  /listHosts                                 - List all known hosts")
         print("  /multiline                                 - Toggle multi-line message mode (use Shift+Enter for new line, Enter to send, CANCEL to cancel)")
         print("  /help                                      - Displays this help")
@@ -376,6 +378,15 @@ class ConsoleUI:
                 print(f"Host {ip_port} removed from known hosts.")
             except Exception as e:
                 print(f"Error removing host: {e}")
+
+        elif cmd == "/ping":
+            if not self.connection or not self.connection.connected:
+                print("Not connected. Use /connect <ip> <port> to connect to a peer.")
+                return
+            try:
+                print(f"Ping : {self.connection.ping_peer():.2f} ms")
+            except Exception as e:
+                print(f"Error during ping: {e}")
 
         else:
             print(f"Unknown command. Type /help for a list of commands.")

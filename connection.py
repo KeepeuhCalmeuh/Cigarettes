@@ -37,6 +37,10 @@ class P2PConnection:
         self._receive_thread: Optional[threading.Thread] = None
         self._renewal_thread: Optional[threading.Thread] = None
 
+        # Ping functionality
+        self._ping_responses = {}  # Dictionary to store ping responses
+        self._ping_lock = threading.Lock()  # Lock for thread-safe ping operations
+
     def start_server(self):
         """Starts the server listening for incoming connections"""
         if self._server_running:
@@ -386,6 +390,11 @@ class P2PConnection:
                 encrypted_data = self._receive_raw()
                 
                 decrypted = self.crypto.decrypt_message(encrypted_data)
+                
+                # Handle ping/pong messages
+                if self._handle_ping_pong(decrypted):
+                    continue  # Skip normal message processing for ping/pong
+                
                 now = datetime.now().strftime("%H:%M:%S")
                 self.message_callback(Fore.YELLOW + f"[{peer_name} | {now}] {decrypted}"+ Style.RESET_ALL)
                 
@@ -402,6 +411,95 @@ class P2PConnection:
 
         self.connected = False
         self._close_peer_socket()
+
+    def _handle_ping_pong(self, message: str) -> bool:
+        """
+        Handles ping/pong messages for latency measurement.
+        Returns True if message was a ping/pong, False otherwise.
+        """
+        if message.startswith("__PING__"):
+            # Respond to ping with pong
+            ping_id = message.split("__PING__")[1]
+            pong_message = f"__PONG__{ping_id}"
+            try:
+                encrypted = self.crypto.encrypt_message(pong_message)
+                self._send_raw(encrypted)
+            except Exception as e:
+                self.message_callback(f"Error sending pong: {str(e)}")
+            return True
+        
+        elif message.startswith("__PONG__"):
+            # Handle pong response
+            ping_id = message.split("__PONG__")[1]
+            with self._ping_lock:
+                if ping_id in self._ping_responses:
+                    self._ping_responses[ping_id] = time.time()
+            return True
+        
+        return False
+
+    def ping_peer(self, timeout: float = 5.0) -> Optional[float]:
+        """
+        Sends a ping to the connected peer and measures the round-trip time.
+        
+        Args:
+            timeout: Maximum time to wait for pong response in seconds
+            
+        Returns:
+            Latency in milliseconds if successful, None if failed or timed out
+        """
+        if not self.connected or not self.peer_socket:
+            self.message_callback("[PING] Not connected to a peer")
+            return None
+        
+        if self._reconnect_in_progress.is_set():
+            self.message_callback("[PING] Reconnection in progress, ping unavailable")
+            return None
+        
+        # Generate unique ping ID
+        ping_id = str(int(time.time() * 1000000))  # Microsecond timestamp as ID
+        ping_message = f"__PING__{ping_id}"
+        
+        # Initialize ping response tracking
+        with self._ping_lock:
+            self._ping_responses[ping_id] = None
+        
+        try:
+            # Send ping
+            start_time = time.time()
+            encrypted = self.crypto.encrypt_message(ping_message)
+            self._send_raw(encrypted)
+            
+            # Wait for pong response
+            end_time = None
+            elapsed = 0
+            while elapsed < timeout:
+                with self._ping_lock:
+                    if self._ping_responses.get(ping_id) is not None:
+                        end_time = self._ping_responses[ping_id]
+                        break
+                
+                time.sleep(0.01)  # Check every 10ms
+                elapsed = time.time() - start_time
+            
+            # Clean up ping response tracking
+            with self._ping_lock:
+                self._ping_responses.pop(ping_id, None)
+            
+            if end_time is not None:
+                latency_ms = (end_time - start_time) * 1000
+                self.message_callback(Fore.LIGHTCYAN_EX + f"[PING] Latency: {latency_ms:.2f}ms" + Style.RESET_ALL)
+                return latency_ms
+            else:
+                self.message_callback(Fore.LIGHTRED_EX + f"[PING] Timeout after {timeout}s" + Style.RESET_ALL)
+                return None
+                
+        except Exception as e:
+            self.message_callback(f"[PING] Error: {str(e)}")
+            # Clean up ping response tracking
+            with self._ping_lock:
+                self._ping_responses.pop(ping_id, None)
+            return None
 
     def _get_peer_nickname(self) -> str:
         """Attempts to retrieve the peer's nickname or returns 'Peer'."""
