@@ -11,7 +11,6 @@ A command-line encrypted P2P messaging application using modern cryptographic te
 - Identity verification using public key fingerprints
 - Simple command-line interface
 
-
 ## Prerequisites
 
 - Python 3.8+
@@ -45,9 +44,11 @@ python main.py 5000
 2. The application will display your public key fingerprint and listen for connections.
 
 3. Add people to you known_hosts.json file.
+
 ```
 /addHost <PEER_IP_ADDRESS>:<PEER_PORT> <PEER_FINGERPRINT>
 ```
+
 For example : `/addhost 192.198.1.2:5000 a2ae88fb900e1769e94850616cd7c9542d06ba3e2517bb47fbd9ab98debb6470`
 
 4. To connect to a peer, use the command:
@@ -55,6 +56,7 @@ For example : `/addhost 192.198.1.2:5000 a2ae88fb900e1769e94850616cd7c9542d06ba3
 ```bash
 /connect <ip> <port>
 ```
+
 For example: `/connect 192.168.1.2 5000`
 
 5. Type your messages and press Enter to send them.

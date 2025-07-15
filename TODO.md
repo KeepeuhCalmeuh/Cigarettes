@@ -5,8 +5,8 @@ Tracking planned improvements to the Cigarettes app.
 ---
 
 ## Needed to release
-- [ ] Release with a compiled version and a verification of the hash.
 
+- [ ] Release with a compiled version and a verification of the hash.
 
 ## 🔐 Security
 

@@ -187,11 +187,6 @@ class ConsoleUI:
         print(f"\nCigarettes - Encrypted P2P Messaging")
         print(f"Listening on the port {port}")
         print(f"Your fingerprint: {self.connection.crypto.get_public_key_fingerprint()}")
-        
-        if not KEYBOARD_AVAILABLE:
-            print("\nNote: For advanced multi-line support, install the 'keyboard' library:")
-            print("pip install keyboard")
-        
         self.display_help()
         
         # Start the thread reading user input        

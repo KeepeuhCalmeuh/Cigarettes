@@ -6,6 +6,9 @@ from colorama import Fore, Style
 
 def print_banner():
     banner = r"""
+
+
+    
                                                                                                             
    █████████   ███                                         █████     █████                    
   ███░░░░░███ ░░░                                         ░░███     ░░███                     
