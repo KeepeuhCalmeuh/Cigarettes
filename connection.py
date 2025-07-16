@@ -651,25 +651,26 @@ class P2PConnection:
             return False
     
     def start_hole_punch(self, peer_ip: str, peer_port: int, timeout: int = 10):
-        """Tentative de connexion P2P via TCP Hole Punching (connect + listen simultanés)"""
+        """
+        Lance un hole punching TCP en parallèle :
+        - démarre le serveur en écoute sur le port local
+        - tente une connexion vers le pair en même temps
+        """
+        self.message_callback(f"[HOLEPUNCH] Tentative de hole punching vers {peer_ip}:{peer_port}")
 
-        self.message_callback(f"[HOLEPUNCH] Tentative de TCP hole punching vers {peer_ip}:{peer_port}...")
-
-        # Sauvegarder les détails
         self._peer_connection_details = (peer_ip, peer_port)
         self._is_server_mode = False
 
-        # Redémarrer le socket d'écoute si déjà en cours
-        if self._server_running:
-            self.message_callback("[HOLEPUNCH] Redémarrage du serveur local pour écoute simultanée.")
-            self.stop()
+        if not self._server_running:
+            self.start_server()
+        else:
+            self.message_callback("[HOLEPUNCH] Serveur déjà en écoute")
 
-        # Lancer l'écoute sur le port local
-        self.start_server()
+        # Lancer la tentative de connexion après un très léger délai
+        def try_connect_later():
+            time.sleep(0.3)  # laisser le serveur démarrer
+            success = self.connect_to_peer(peer_ip, peer_port, timeout)
+            if not success:
+                self.message_callback(Fore.LIGHTRED_EX + "[HOLEPUNCH] Échec de la connexion directe. NAT peut bloquer ou pair injoignable." + Style.RESET_ALL)
 
-        # En parallèle : tenter de se connecter au pair
-        def attempt_connect():
-            time.sleep(0.5)  # laisser le temps au socket d'écoute de s'initialiser
-            self.connect_to_peer(peer_ip, peer_port, timeout)
-
-        threading.Thread(target=attempt_connect, daemon=True).start()
+        threading.Thread(target=try_connect_later, daemon=True).start()

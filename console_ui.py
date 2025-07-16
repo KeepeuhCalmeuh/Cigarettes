@@ -6,6 +6,7 @@ from datetime import datetime
 from known_hosts_manager import get_nickname, set_nickname, add_host, list_known_hosts
 import os
 from colorama import Fore, Style
+from local_ip_utils import get_public_ip_and_port
 
 try:
     import keyboard
@@ -415,7 +416,14 @@ class ConsoleUI:
                     ip, port = self.connection._peer_connection_details
                     print(f"Peer: {ip}:{port}")
                     print(f"Mode: {'Server' if self.connection._is_server_mode else 'Client'}")
-                    print(f"Messages exchanged: {self.connection._message_count}")
+                    print(f"Messages échangés : {self.connection._message_count}")
+
+                # Bonus : STUN
+                info = get_public_ip_and_port()
+                if info:
+                    print(f"STUN Public IP : {info['public_ip']}")
+                    print(f"STUN Public Port : {info['public_port']}")
+                    print(f"NAT Type : {info['nat_type']}")
 
 
         else:
