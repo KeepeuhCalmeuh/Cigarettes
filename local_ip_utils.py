@@ -1,5 +1,6 @@
 import socket
 import requests
+import stun
 
 def get_local_ip():
     """Returns the local IP address of the machine."""
@@ -24,7 +25,6 @@ def get_public_ip():
         print("Error retrieving public IP:", e)
         return None
     
-import stun
 
 def get_public_ip_and_port(stun_host="stun.l.google.com", stun_port=19302):
     try:
