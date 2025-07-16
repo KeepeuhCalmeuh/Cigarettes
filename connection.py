@@ -651,16 +651,25 @@ class P2PConnection:
             return False
     
     def start_hole_punch(self, peer_ip: str, peer_port: int, timeout: int = 10):
-        """Tentative de connexion P2P via TCP Hole Punching"""
-        self.message_callback(f"[HOLEPUNCH] Lancement du TCP hole punching vers {peer_ip}:{peer_port}...")
+        """Tentative de connexion P2P via TCP Hole Punching (connect + listen simultanés)"""
 
+        self.message_callback(f"[HOLEPUNCH] Tentative de TCP hole punching vers {peer_ip}:{peer_port}...")
+
+        # Sauvegarder les détails
         self._peer_connection_details = (peer_ip, peer_port)
-        self._is_server_mode = False  # on tente en tant que client mais aussi on écoute
+        self._is_server_mode = False
 
-        # Lancer le serveur d’écoute si ce n'est pas déjà fait
-        if not self._server_running:
-            self.start_server()
+        # Redémarrer le socket d'écoute si déjà en cours
+        if self._server_running:
+            self.message_callback("[HOLEPUNCH] Redémarrage du serveur local pour écoute simultanée.")
+            self.stop()
 
-        # Tentative de connexion en parallèle
-        connect_thread = threading.Thread(target=self.connect_to_peer, args=(peer_ip, peer_port, timeout), daemon=True)
-        connect_thread.start()
+        # Lancer l'écoute sur le port local
+        self.start_server()
+
+        # En parallèle : tenter de se connecter au pair
+        def attempt_connect():
+            time.sleep(0.5)  # laisser le temps au socket d'écoute de s'initialiser
+            self.connect_to_peer(peer_ip, peer_port, timeout)
+
+        threading.Thread(target=attempt_connect, daemon=True).start()
