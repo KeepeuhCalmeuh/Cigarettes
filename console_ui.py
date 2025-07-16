@@ -26,6 +26,7 @@ class ConsoleUI:
         """Displays help for available commands"""
         print("\nAvailable Commands :")
         print("  /connect <ip> <port>                       - Connect to a remote peer")
+        print("  /status                                    - Display connection status and peer information")
         print("  /stop                                      - Disconnect from the peer without exiting the application")
         print("  /save                                      - Save the discussion history to a .txt file")
         print("  /ping                                      - Ping the connected peer and display response time")
@@ -302,24 +303,27 @@ class ConsoleUI:
                 print(f"Your fingerprint: {self.connection.crypto.get_public_key_fingerprint()}")
 
         elif cmd == "/connect":
-            if len(parts) != 3:
-                print("Usage: /connect <ip> <port>")
+            if len(parts) < 3:
+                print("Usage: /connect <ip> <port> [timeout]")
+                print("Example: /connect 192.168.1.100 8080")
+                print("Example: /connect 203.0.113.1 8080 15")
                 return
 
             try:
                 ip = parts[1]
                 port = int(parts[2])
+                timeout = int(parts[3]) if len(parts) > 3 else 10
                 
                 if self.connection.connected:
                     print("Already connected to a peer.")
                     return
                 
-                print(f"Attempting to connect to {ip}:{port}...")
-                if self.connection.connect_to_peer(ip, port):
-                    print("connected!")
-                
+                print(f"Attempting to connect to {ip}:{port} (timeout: {timeout}s)...")
+                if self.connection.connect_to_peer(ip, port, timeout):
+                    print("Connected successfully!")
+            
             except ValueError:
-                print("The port must be a number.")
+                print("Port and timeout must be numbers.")
             
         elif cmd == "/save":
             if not self.history:
@@ -388,5 +392,14 @@ class ConsoleUI:
             except Exception as e:
                 print(f"Error during ping: {e}")
 
+        elif cmd == "/status":
+            if self.connection:
+                print(f"Listen port: {self.connection.listen_port}")
+                print(f"Connected: {self.connection.connected}")
+                if self.connection.connected and self.connection._peer_connection_details:
+                    ip, port = self.connection._peer_connection_details
+                    print(f"Peer: {ip}:{port}")
+                    print(f"Mode: {'Server' if self.connection._is_server_mode else 'Client'}")
+                    print(f"Messages exchanged: {self.connection._message_count}")
         else:
             print(f"Unknown command. Type /help for a list of commands.")

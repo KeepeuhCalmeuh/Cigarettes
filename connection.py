@@ -4,8 +4,10 @@ import json
 import time
 from typing import Callable, Optional
 from crypto_utils import CryptoManager 
-from datetime import datetime, timedelta 
-from known_hosts_manager import get_nickname 
+from datetime import datetime
+import ipaddress
+from known_hosts_manager import get_nickname
+from local_ip_utils import get_local_ip, get_public_ip
 import os
 from colorama import Fore, Style
 
@@ -67,15 +69,24 @@ class P2PConnection:
                 self.socket.close()
                 self.socket = None
 
-    def connect_to_peer(self, peer_ip: str, peer_port: int):
+    def connect_to_peer(self, peer_ip: str, peer_port: int, timeout: int = 10):
         """Connects to a remote peer with digital signature and TOFU authentication"""
         if self.connected:
             self.message_callback("Already connected to a peer")
             return False
         
+        if not self._validate_ip_address(peer_ip):
+            self.message_callback(f"Invalid IP address: {peer_ip}")
+            return False
+        
+        if self._is_private_ip(peer_ip):
+            self.message_callback(Fore.LIGHTYELLOW_EX + f"[INFO] Connecting to private IP: {peer_ip}" + Style.RESET_ALL)
+        else:
+            self.message_callback(Fore.LIGHTYELLOW_EX + f"[INFO] Connecting to public IP: {peer_ip}" + Style.RESET_ALL)
+
         # Reset any previous connection state
         self._stop_peer_connection()
-        
+            
         # Store peer details for potential reconnection
         self._peer_connection_details = (peer_ip, peer_port)
         self._is_server_mode = False # Set client mode
@@ -83,7 +94,9 @@ class P2PConnection:
         try:
             self.message_callback(f"Attempting to connect to {peer_ip}:{peer_port}...")
             self.peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.peer_socket.settimeout(timeout)  
             self.peer_socket.connect((peer_ip, peer_port))
+            self.peer_socket.settimeout(None)
 
             if not self._exchange_handshake_data(
                 send_public_key_first=True, 
@@ -163,6 +176,9 @@ class P2PConnection:
         `peer_ip` and `peer_port`: Used for TOFU verification, optional for server side where address is determined on accept.
         """
         try:
+            if self.peer_socket:
+                self.peer_socket.settimeout(30)
+
             peer_key = None
             if send_public_key_first:
                 # 1. Client: Send public key, then receive peer's
@@ -210,8 +226,14 @@ class P2PConnection:
             if not self.crypto.verify_signature(peer_key, my_challenge, peer_signature):
                 self.message_callback("[SECURITY] Invalid peer signature. Connection refused.")
                 return False
-            
+        
+            if self.peer_socket:
+                self.peer_socket.settimeout(None)
+
             return True
+        except socket.timeout:
+            self.message_callback("[SECURITY] Handshake timeout - peer may be behind NAT/firewall")
+            return False
         except Exception as e:
             self.message_callback(f"Handshake error: {str(e)}")
             return False
@@ -611,3 +633,19 @@ class P2PConnection:
         for thread in [self._accept_thread, self._receive_thread, self._renewal_thread]:
             if thread and thread.is_alive():
                 thread.join(timeout=2.0)
+
+    def _validate_ip_address(self, ip: str) -> bool:
+        """Validates if the IP address is valid"""
+        try:
+            ipaddress.ip_address(ip)
+            return True
+        except ValueError:
+            return False
+
+    def _is_private_ip(self, ip: str) -> bool:
+        """Checks if IP is private (for informational purposes)"""
+        try:
+            ip_obj = ipaddress.ip_address(ip)
+            return ip_obj.is_private
+        except ValueError:
+            return False

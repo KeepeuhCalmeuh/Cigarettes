@@ -27,6 +27,7 @@ Tracking planned improvements to the Cigarettes app.
 
 - [ ] Automatic peer discovery on the local network (mDNS or UDP broadcast)
 - [ ] Connection via Tor or SOCKS5 proxy
+- [ ] Open to internet with DHT
 
 ---
 

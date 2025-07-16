@@ -1,6 +1,6 @@
 import sys
 from console_ui import ConsoleUI
-from local_ip_utils import get_local_ip
+from local_ip_utils import get_local_ip, get_public_ip
 from colorama import Fore, Style
 
 
@@ -44,7 +44,8 @@ def main():
         return
 
     print_banner()
-    print(f"Your local IP address : {get_local_ip()}\n")
+    print(f"Your local IP address : {get_local_ip()}")
+    print(f"Your public IP address : {get_public_ip()}\n")
 
     ui = ConsoleUI()
     ui.start(port)

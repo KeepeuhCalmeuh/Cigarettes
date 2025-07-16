@@ -64,6 +64,7 @@ For example: `/connect 192.168.1.2 5000`
 ### Available Commands
 
 - `/connect <ip> <port>`: Connects to a remote peer
+- `/status`: Display connexion informations.
 - `/stop`: Disconnects the connection with the peer without exiting the application
 - `/save`: Saves the chat history to a text file (`history` folder)
 - `/ping`: Display the ping between you and your peer.
