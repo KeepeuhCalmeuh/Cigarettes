@@ -401,5 +401,20 @@ class ConsoleUI:
                     print(f"Peer: {ip}:{port}")
                     print(f"Mode: {'Server' if self.connection._is_server_mode else 'Client'}")
                     print(f"Messages exchanged: {self.connection._message_count}")
+
+        elif cmd == "/punch":
+            if len(parts) != 3:
+                print("Usage: /punch <ip> <port>")
+                return
+            ip = parts[1]
+            try:
+                port = int(parts[2])
+                if self.connection.connected:
+                    print("Already connected. Use /stop to disconnect first.")
+                    return
+                self.connection.start_hole_punch(ip, port)
+                print("Tentative de connexion via hole punching lancée.")
+            except ValueError:
+                print("Port invalide.")
         else:
             print(f"Unknown command. Type /help for a list of commands.")

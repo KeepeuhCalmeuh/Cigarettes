@@ -24,7 +24,24 @@ def get_public_ip():
         print("Error retrieving public IP:", e)
         return None
     
+import stun
+
+def get_public_ip_and_port(stun_host="stun.l.google.com", stun_port=19302):
+    try:
+        nat_type, external_ip, external_port = stun.get_ip_info(stun_host=stun_host, stun_port=stun_port)
+        return {
+            "nat_type": nat_type,
+            "public_ip": external_ip,
+            "public_port": external_port
+        }
+    except Exception as e:
+        print(f"[STUN] Error retrieving public IP/port: {e}")
+        return None
+
+
 
 if __name__ == "__main__":
     print("Local IP:", get_local_ip())
     print("Public IP:", get_public_ip())
+
+    print("Public IP and Port via STUN:", get_public_ip_and_port())

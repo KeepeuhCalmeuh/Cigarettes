@@ -649,3 +649,18 @@ class P2PConnection:
             return ip_obj.is_private
         except ValueError:
             return False
+    
+    def start_hole_punch(self, peer_ip: str, peer_port: int, timeout: int = 10):
+        """Tentative de connexion P2P via TCP Hole Punching"""
+        self.message_callback(f"[HOLEPUNCH] Lancement du TCP hole punching vers {peer_ip}:{peer_port}...")
+
+        self._peer_connection_details = (peer_ip, peer_port)
+        self._is_server_mode = False  # on tente en tant que client mais aussi on écoute
+
+        # Lancer le serveur d’écoute si ce n'est pas déjà fait
+        if not self._server_running:
+            self.start_server()
+
+        # Tentative de connexion en parallèle
+        connect_thread = threading.Thread(target=self.connect_to_peer, args=(peer_ip, peer_port, timeout), daemon=True)
+        connect_thread.start()
