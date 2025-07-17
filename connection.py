@@ -10,6 +10,7 @@ from known_hosts_manager import get_nickname
 from local_ip_utils import get_local_ip, get_public_ip
 import os
 from colorama import Fore, Style
+import socks  # Ajout pour le support SOCKS5 (PySocks)
 
 
 class P2PConnection:
@@ -115,6 +116,47 @@ class P2PConnection:
             self._renewal_thread = threading.Thread(target=self._renewal_monitor, daemon=True)
             self._renewal_thread.start()
             
+            return True
+        except Exception as e:
+            self.message_callback(f"Connection error: {str(e)}")
+            self._close_peer_socket()
+            return False
+
+    def connect_to_onion_peer(self, onion_address: str, fingerprint: str, port: int = 34567, timeout: int = 10):
+        """
+        Connecte à un pair via une adresse .onion et le proxy SOCKS5 de Tor.
+        """
+        if self.connected:
+            self.message_callback("Already connected to a peer")
+            return False
+
+        self._stop_peer_connection()
+        self._peer_connection_details = (onion_address, port)
+        self._is_server_mode = False
+
+        try:
+            self.message_callback(f"Attempting to connect to {onion_address}:{port} via Tor...")
+            self.peer_socket = socks.socksocket()
+            self.peer_socket.set_proxy(socks.SOCKS5, "127.0.0.1", 9050)
+            self.peer_socket.settimeout(timeout)
+            self.peer_socket.connect((onion_address, port))
+            self.peer_socket.settimeout(None)
+
+            # Appelle la logique handshake/TOFU existante
+            if not self._exchange_handshake_data(
+                send_public_key_first=True,
+                peer_ip=onion_address,
+                peer_port=port
+            ):
+                self._close_peer_socket()
+                return False
+
+            self.connected = True
+            self._initialize_renewal_trackers()
+            self._receive_thread = threading.Thread(target=self._receive_messages, daemon=True)
+            self._receive_thread.start()
+            self._renewal_thread = threading.Thread(target=self._renewal_monitor, daemon=True)
+            self._renewal_thread.start()
             return True
         except Exception as e:
             self.message_callback(f"Connection error: {str(e)}")

@@ -2,7 +2,7 @@ import sys
 from console_ui import ConsoleUI
 from local_ip_utils import get_local_ip, get_public_ip_and_port
 from colorama import Fore, Style
-
+from tor_manager import launch_tor_with_hidden_service
 
 def print_banner():
     banner = r"""
@@ -49,8 +49,18 @@ def main():
     print(f"Your public port : {get_public_ip_and_port()['public_port']}")
     print(f"Your NAT type : {get_public_ip_and_port()['nat_type']}")
 
+        
+    proc, onion_addr = launch_tor_with_hidden_service(port)
+    print(f"Your .onion address : {onion_addr}")
+
+
     ui = ConsoleUI()
-    ui.start(port)
+    try:
+        ui.start(port)
+    finally:
+        print("Stopping Tor...")
+        proc.terminate()
+        proc.wait()
 
 if __name__ == "__main__":
     main()

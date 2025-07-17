@@ -6,3 +6,5 @@ user_public_key.pem
 known_hosts.json
 .vscode
 note.txt
+plan_integration_tor.txt
+tor/

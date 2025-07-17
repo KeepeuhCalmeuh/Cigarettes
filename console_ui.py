@@ -304,10 +304,23 @@ class ConsoleUI:
                 print(f"Your fingerprint: {self.connection.crypto.get_public_key_fingerprint()}")
 
         elif cmd == "/connect":
+            # Connexion via .onion et fingerprint
+            if len(parts) == 3 and parts[1].endswith(".onion"):
+                onion_address = parts[1]
+                fingerprint = parts[2]
+                port = 34567  # Port par défaut pour Tor Hidden Service
+                if self.connection.connected:
+                    print("Already connected to a peer.")
+                    return
+                print(f"Attempting to connect to {onion_address}:{port} via Tor...")
+                if self.connection.connect_to_onion_peer(onion_address, fingerprint, port):
+                    print("Connected successfully via Tor!")
+                return
+            # Connexion classique IP:port
             if len(parts) < 3:
-                print("Usage: /connect <ip> <port> [timeout]")
+                print("Usage: /connect <ip> <port> [timeout] ou /connect <onion> <fingerprint>")
                 print("Example: /connect 192.168.1.100 8080")
-                print("Example: /connect 203.0.113.1 8080 15")
+                print("Example: /connect mwrl7yek4bsdk4scm2gigwkl3emqitz622hjcb65aastrku5ytse6qd.onion eafa04cfe3c8ba6006d3979c1de1943b5f47f77c3f77283de7e410a1e2e1400d")
                 return
 
             try:
