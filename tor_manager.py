@@ -25,7 +25,7 @@ TOR_DIR = os.path.join(os.path.dirname(__file__), 'tor')
 TOR_BINARY = None  # Sera défini selon l'OS
 TOR_SOCKS_PORT = 9050  # Port SOCKS5 par défaut
 
-# URLs officielles Tor Expert Bundle (à jour 2024-06)
+# Official Tor Expert Bundle URLs (updated 2024-06)
 TOR_VERSION = '0.4.8.12'
 TOR_URLS = {
     'Windows': f'https://archive.torproject.org/tor-package-archive/torbrowser/14.5.4/tor-expert-bundle-windows-x86_64-14.5.4.tar.gz',
@@ -47,15 +47,58 @@ def detect_os():
         raise RuntimeError(f"Unsupported OS: {os_name}")
 
 
+def find_tor_binary():
+    """Searches for Tor binary in the extracted directory."""
+    possible_paths = [
+        os.path.join(TOR_DIR, 'tor', 'tor'),
+        os.path.join(TOR_DIR, 'Tor', 'tor'),
+        os.path.join(TOR_DIR, 'tor', 'bin', 'tor'),
+        os.path.join(TOR_DIR, 'bin', 'tor'),
+        os.path.join(TOR_DIR, 'tor.exe'),
+        os.path.join(TOR_DIR, 'tor')
+    ]
+
+    for path in possible_paths:
+        if os.path.isfile(path):
+            print(f"Found Tor binary at: {path}")
+            return path
+
+    # List contents of TOR_DIR for debugging
+    print(f"Contents of {TOR_DIR}:")
+    if os.path.exists(TOR_DIR):
+        for root, dirs, files in os.walk(TOR_DIR):
+            level = root.replace(TOR_DIR, '').count(os.sep)
+            indent = ' ' * 2 * level
+            print(f"{indent}{os.path.basename(root)}/")
+            subindent = ' ' * 2 * (level + 1)
+            for file in files:
+                print(f"{subindent}{file}")
+
+    return None
+
+
 def get_tor_binary_path():
     """Returns Tor binary path according to OS."""
     os_key = detect_os()
+    print(f"Detected OS: {os_key}")
     if os_key == 'Windows':
-        return os.path.join(TOR_DIR, 'Tor', 'tor.exe')
+        path = os.path.join(TOR_DIR, 'Tor', 'tor.exe')
     elif os_key == 'Linux':
-        return os.path.join(TOR_DIR, 'tor', 'tor')
+        path = os.path.join(TOR_DIR, 'tor', 'tor')
     elif os_key == 'Darwin':
-        return os.path.join(TOR_DIR, 'Tor', 'tor')
+        path = os.path.join(TOR_DIR, 'Tor', 'tor')
+    print(f"Expected Tor binary path: {path}")
+
+    # If expected path doesn't exist, search for it
+    if not os.path.isfile(path):
+        print("Expected path not found, searching for Tor binary...")
+        found_path = find_tor_binary()
+        if found_path:
+            return found_path
+        else:
+            raise RuntimeError(f"Tor binary not found in {TOR_DIR}")
+
+    return path
 
 
 def is_tor_present():
