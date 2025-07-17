@@ -10,15 +10,15 @@ import time
 import tempfile
 
 # =============================
-# Module de gestion de Tor embarqué
+# Embedded Tor Management Module
 # =============================
-# Ce module :
-# 1. Détecte l'OS et l'architecture
-# 2. Vérifie la présence de Tor dans ./tor/
-# 3. Télécharge Tor si besoin
-# 4. Décompresse/installe Tor
-# 5. Lance Tor en sous-processus
-# 6. Vérifie que Tor est prêt (SOCKS5 up)
+# This module:
+# 1. Detects OS and architecture
+# 2. Checks for Tor presence in ./tor/
+# 3. Downloads Tor if needed
+# 4. Extracts/installs Tor
+# 5. Launches Tor as subprocess
+# 6. Verifies Tor is ready (SOCKS5 up)
 # =============================
 
 TOR_DIR = os.path.join(os.path.dirname(__file__), 'tor')
@@ -35,7 +35,7 @@ TOR_URLS = {
 
 
 def detect_os():
-    """Détecte l'OS et retourne la clé pour TOR_URLS."""
+    """Detects OS and returns key for TOR_URLS."""
     os_name = platform.system()
     if os_name == 'Windows':
         return 'Windows'
@@ -44,11 +44,11 @@ def detect_os():
     elif os_name == 'Darwin':
         return 'Darwin'
     else:
-        raise RuntimeError(f"OS non supporté : {os_name}")
+        raise RuntimeError(f"Unsupported OS: {os_name}")
 
 
 def get_tor_binary_path():
-    """Retourne le chemin du binaire Tor selon l'OS."""
+    """Returns Tor binary path according to OS."""
     os_key = detect_os()
     if os_key == 'Windows':
         return os.path.join(TOR_DIR, 'Tor', 'tor.exe')
@@ -59,28 +59,28 @@ def get_tor_binary_path():
 
 
 def is_tor_present():
-    """Vérifie si le binaire Tor est déjà présent."""
+    """Checks if Tor binary is already present."""
     return os.path.isfile(get_tor_binary_path())
 
 
 def download_tor():
-    """Télécharge l'archive Tor adaptée à l'OS dans le dossier tor/."""
+    """Downloads Tor archive adapted to OS in tor/ folder."""
     os_key = detect_os()
     url = TOR_URLS[os_key]
     local_archive = os.path.join(TOR_DIR, os.path.basename(url))
     os.makedirs(TOR_DIR, exist_ok=True)
-    print(f"Téléchargement de Tor depuis {url} ...")
+    print(f"Downloading Tor from {url} ...")
     with requests.get(url, stream=True) as r:
         r.raise_for_status()
         with open(local_archive, 'wb') as f:
             shutil.copyfileobj(r.raw, f)
-    print(f"Archive téléchargée : {local_archive}")
+    print(f"Archive downloaded: {local_archive}")
     return local_archive
 
 
 def extract_tor(archive_path):
-    """Décompresse l'archive Tor dans le dossier tor/."""
-    print(f"Décompression de {archive_path} ...")
+    """Extracts Tor archive in tor/ folder."""
+    print(f"Extracting {archive_path} ...")
     if archive_path.endswith('.zip'):
         with zipfile.ZipFile(archive_path, 'r') as zip_ref:
             zip_ref.extractall(TOR_DIR)
@@ -89,59 +89,59 @@ def extract_tor(archive_path):
         with tarfile.open(archive_path, mode) as tar_ref:
             tar_ref.extractall(TOR_DIR)
     else:
-        raise RuntimeError("Format d'archive non supporté")
-    print("Décompression terminée.")
+        raise RuntimeError("Unsupported archive format")
+    print("Extraction completed.")
 
 
 def ensure_tor():
-    """Vérifie la présence de Tor, le télécharge et l'installe si besoin."""
+    """Checks Tor presence, downloads and installs if needed."""
     if is_tor_present():
-        print("Tor déjà présent.")
+        print("Tor already present.")
         return
     archive = download_tor()
     extract_tor(archive)
-    # Optionnel : supprimer l'archive après extraction
+    # Optional: remove archive after extraction
     os.remove(archive)
     if not is_tor_present():
-        raise RuntimeError("Tor n'a pas été trouvé après installation !")
-    print("Tor prêt à l'emploi.")
+        raise RuntimeError("Tor not found after installation!")
+    print("Tor ready to use.")
 
 
 def launch_tor(extra_args=None):
-    """Lance Tor en sous-processus. Retourne le handle du process."""
+    """Launches Tor as subprocess. Returns process handle."""
     tor_path = get_tor_binary_path()
     if not os.path.isfile(tor_path):
-        raise RuntimeError(f"Binaire Tor introuvable : {tor_path}")
+        raise RuntimeError(f"Tor binary not found: {tor_path}")
     args = [tor_path]
     if extra_args:
         args += extra_args
-    print(f"Lancement de Tor : {' '.join(args)}")
+    print(f"Launching Tor: {' '.join(args)}")
     proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return proc
 
 
 def wait_for_tor_ready(timeout=60):
-    """Attend que le port SOCKS5 de Tor soit ouvert (prêt)."""
+    """Waits for Tor SOCKS5 port to be open (ready)."""
     import socket
     start = time.time()
     while time.time() - start < timeout:
         try:
             with socket.create_connection(('127.0.0.1', TOR_SOCKS_PORT), timeout=2):
-                print("Tor SOCKS5 prêt !")
+                print("Tor SOCKS5 ready!")
                 return True
         except Exception:
             time.sleep(1)
-    raise TimeoutError("Tor n'a pas démarré dans le temps imparti.")
+    raise TimeoutError("Tor did not start within timeout.")
 
 
 # =============================
-# Gestion du Hidden Service Tor
+# Tor Hidden Service Management
 # =============================
 
 def create_hidden_service_dir(port, base_dir=None):
     """
-    Crée le dossier et le fichier torrc pour un Hidden Service exposant le port local donné.
-    Retourne le chemin du dossier Hidden Service et du torrc généré.
+    Creates folder and torrc file for a Hidden Service exposing the given local port.
+    Returns Hidden Service folder path and generated torrc path.
     """
     if base_dir is None:
         base_dir = os.path.join(TOR_DIR, 'hidden_service')
@@ -158,47 +158,36 @@ def create_hidden_service_dir(port, base_dir=None):
 
 def launch_tor_with_hidden_service(port, base_dir=None):
     """
-    Start Tor with a Hidden Service exposing the local port given.
-    Return the Tor process and the generated .onion address.
+    Launches Tor with a Hidden Service exposing the given local port.
+    Returns Tor process and generated .onion address.
     """
     hs_dir, torrc_path = create_hidden_service_dir(port, base_dir)
     tor_path = get_tor_binary_path()
     args = [tor_path, '-f', torrc_path]
-    #print(f"Lancement de Tor avec Hidden Service : {' '.join(args)}")
+    print(f"Launching Tor with Hidden Service: {' '.join(args)}")
     proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    # Attendre la création du fichier hostname (adresse .onion)
+    # Wait for hostname file creation (.onion address)
     hostname_path = os.path.join(hs_dir, 'hostname')
-    print("Waiting for .onion...")
+    print("Waiting for .onion address creation...")
     for _ in range(60):  # Timeout ~60s
         if os.path.isfile(hostname_path):
             with open(hostname_path, 'r') as f:
                 onion_addr = f.read().strip()
-            #print(f"Your .onion address : {onion_addr}")
+            print(f".onion address generated: {onion_addr}")
             return proc, onion_addr
         time.sleep(1)
     proc.terminate()
-    raise TimeoutError("Le Hidden Service n'a pas été créé dans le temps imparti.")
+    raise TimeoutError("Hidden Service was not created within timeout.")
 
-# =============================
-# Exemple d'utilisation du module
-# =============================
+
 if __name__ == "__main__":
-    print("[TOR MANAGER] Initialisation...")
+    print("[TOR MANAGER] Initialization...")
     ensure_tor()
     proc = launch_tor()
     try:
         wait_for_tor_ready()
-        print("[TOR MANAGER] Tor est prêt à l'emploi !")
+        print("[TOR MANAGER] Tor is ready to use!")
     finally:
-        print("[TOR MANAGER] Arrêt de Tor...")
+        print("[TOR MANAGER] Stopping Tor...")
         proc.terminate()
         proc.wait()
-
-# =============================
-# Exemple d'utilisation du Hidden Service
-# =============================
-# Supprimer la fonction de démonstration qui fait input() et terminate.
-# La fonction utile est :
-# def launch_tor_with_hidden_service(port, base_dir=None):
-#     ...
-#     return proc, onion_addr

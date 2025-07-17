@@ -25,15 +25,15 @@ class ConsoleUI:
     def display_help(self):
         """Displays help for available commands"""
         print("\nAvailable Commands :")
-        print("  /connect <ip> <port>                       - Connect to a remote peer")
+        print("  /connect <peer_onion_adress> <PEER_FINGERPRINT> <peer_listening_port (optional, default : 34567)>                       - Connect to a remote peer")
         print("  /status                                    - Display connection status and peer information")
         print("  /stop                                      - Disconnect from the peer without exiting the application")
         print("  /save                                      - Save the discussion history to a .txt file")
         print("  /ping                                      - Ping the connected peer and display response time")
-        print("  /fingerprint                               - Displays the fingerprint of your public key")
+        print("  /info                                      - Displays your fingerprint, .onion address and listening port")
         print("  /rename <fingerprint> <new_name>           - Rename a peer in known hosts")
-        print("  /addHost <ip:port> <fingerprint>           - Add a host to known hosts")
-        print("  /removehost <ip:port>                      - Remove a host from known hosts")
+        print("  /addHost <peer_onion_adress> <fingerprint> - Add a host to known hosts")
+        print("  /removehost <peer_onion_adress>            - Remove a host from known hosts")
         print("  /listHosts                                 - List all known hosts")
         print("  /multiline                                 - Toggle multi-line message mode (use Shift+Enter for new line, Enter to send, CANCEL to cancel)")
         print("  /help                                      - Displays this help")
@@ -228,7 +228,7 @@ class ConsoleUI:
                     elif self.connection.connected:
                         self._send_message(user_input)
                     else:
-                        print("Not connected. Use /connect <ip> <port> to connect to a peer.")
+                        print("Not connected. Use /connect <peer_onion_adress> <PEER_FINGERPRINT> <peer_listening_port (optional, default : 34567)> to connect to a peer.")
             
             except EOFError:
                 break
@@ -298,16 +298,23 @@ class ConsoleUI:
             print("Bye!")
             self._stop_flag.set()
 
-        elif cmd == "/fingerprint":
+        elif cmd == "/info":
             if self.connection:
                 print(f"Your fingerprint: {self.connection.crypto.get_public_key_fingerprint()}")
+                print(f"Your .onion address: {self.connection.crypto.get_onion_address()}")
+                print(f"Your listening port: {self.connection.listen_port}")
+            if self.connection.connected:
+                print(f"Connected to: {self.connection.peer_ip}:{self.connection.peer_port}")
+            else:
+                print("Not connected.")
+
 
         elif cmd == "/connect":
-            # Connexion via .onion et fingerprint
+            # Connection via .onion and fingerprint
             if len(parts) == 3 and parts[1].endswith(".onion"):
                 onion_address = parts[1]
                 fingerprint = parts[2]
-                port = 34567  # Port par défaut pour Tor Hidden Service
+                port = 34567  # Default port for Tor Hidden Service
                 if self.connection.connected:
                     print("Already connected to a peer.")
                     return
@@ -315,9 +322,9 @@ class ConsoleUI:
                 if self.connection.connect_to_onion_peer(onion_address, fingerprint, port):
                     print("Connected successfully via Tor!")
                 return
-            # Connexion classique IP:port
+            # Classic connection IP:port
             if len(parts) < 3:
-                print("Usage: /connect <ip> <port> [timeout] ou /connect <onion> <fingerprint>")
+                print("Usage: /connect <ip> <port> [timeout] or /connect <onion> <fingerprint>")
                 print("Example: /connect 192.168.1.100 8080")
                 print("Example: /connect mwrl7yek4bsdk4scm2gigwkl3emqitz622hjcb65aastrku5ytse6qd.onion eafa04cfe3c8ba6006d3979c1de1943b5f47f77c3f77283de7e410a1e2e1400d")
                 return
@@ -354,23 +361,8 @@ class ConsoleUI:
             except Exception as e:
                 print(f"Error while saving:{e}")
 
-        elif cmd == "/listhosts":
+        elif cmd == "/listhosts" or cmd == "/listhosts":
             list_known_hosts()
-
-        elif cmd == "/punch":
-            if len(parts) != 3:
-                print("Usage: /punch <ip> <port>")
-                return
-            ip = parts[1]
-            try:
-                port = int(parts[2])
-                if self.connection.connected:
-                    print("Already connected. Use /stop to disconnect first.")
-                    return
-                self.connection.start_hole_punch(ip, port)
-                print("Tentative de connexion via hole punching lancée.")
-            except ValueError:
-                print("Port invalide.")
 
         elif command.startswith("/rename "):
             parts = command.split(" ", 2)
@@ -386,7 +378,7 @@ class ConsoleUI:
             except Exception as e:
                 print(f"Error while renaming: {e}")
 
-        elif command.startswith("/addHost "):
+        elif command.startswith("/addHost ") or command.startswith("/addhost "):
             parts = command.split(" ", 2)
             if len(parts) != 3:
                 print("Usage: /addHost <ip:port> <fingerprint>")
@@ -397,10 +389,10 @@ class ConsoleUI:
             except Exception as e:
                 print(f"Error adding host: {e}")
         
-        elif command.startswith("/removehost "):
+        elif command.startswith("/removehost ") or command.startswith("/removeHost "):
             parts = command.split(" ", 1)
             if len(parts) != 2:
-                print("Usage: /removehost <ip:port>")
+                print("Usage: /removehost <peer_onion_adress>")
                 return
             ip_port = parts[1]
             try:
@@ -413,7 +405,7 @@ class ConsoleUI:
 
         elif cmd == "/ping":
             if not self.connection or not self.connection.connected:
-                print("Not connected. Use /connect <ip> <port> to connect to a peer.")
+                print("Not connected. Use /connect <peer_onion_adress> <PEER_FINGERPRINT> <peer_listening_port (optional, default : 34567)> to connect to a peer.")
                 return
             try:
                 print(f"Ping : {self.connection.ping_peer():.2f} ms")
@@ -429,13 +421,6 @@ class ConsoleUI:
                     print(f"Peer: {ip}:{port}")
                     print(f"Mode: {'Server' if self.connection._is_server_mode else 'Client'}")
                     print(f"Messages échangés : {self.connection._message_count}")
-
-                # Bonus : STUN
-                info = get_public_ip_and_port()
-                if info:
-                    print(f"STUN Public IP : {info['public_ip']}")
-                    print(f"STUN Public Port : {info['public_port']}")
-                    print(f"NAT Type : {info['nat_type']}")
 
 
         else:

@@ -14,8 +14,8 @@ import socks
 
 class P2PConnection:
     # Constants for connection renewal
-    RENEW_AFTER_MESSAGES = 10 # Renew connection after 10 messages
-    RENEW_AFTER_MINUTES = 2   # Renew connection after 2 minutes
+    RENEW_AFTER_MESSAGES = 10000 # Renew connection after 10000 messages
+    RENEW_AFTER_MINUTES = 60   # Renew connection after 60 minutes
 
     def __init__(self, listen_port: int, message_callback: Callable[[str], None]):
         self.listen_port = listen_port
@@ -281,8 +281,8 @@ class P2PConnection:
 
     def _verify_tofu_identity(self, peer_ip: str, peer_port: int, mode: str) -> bool:
         """
-        Vérifie si le fingerprint du pair est déjà enregistré dans known_hosts.json (clé 'hosts').
-        Si oui, accepte la connexion. Sinon, refuse.
+        Verifies if the peer's fingerprint is already registered in known_hosts.json (key 'hosts').
+        If yes, accepts the connection. Otherwise, refuses.
         """
         known_hosts_path = "known_hosts.json"
         known_hosts = {"hosts": {}, "nicknames": {}}
@@ -304,7 +304,7 @@ class P2PConnection:
             self.message_callback(f"[SECURITY] No known hosts found. Refusing connection.")
             return False
         peer_fingerprint = self.crypto.get_peer_fingerprint()
-        # Vérifie si le fingerprint est déjà enregistré dans n'importe quelle entrée
+        # Check if the fingerprint is already registered in any entry
         if peer_fingerprint in known_hosts["hosts"].values():
             self.message_callback(Fore.LIGHTGREEN_EX + f"[TOFU] Known fingerprint {peer_fingerprint} verified." + Style.RESET_ALL)
             return True
@@ -654,28 +654,3 @@ class P2PConnection:
             return ip_obj.is_private
         except ValueError:
             return False
-    
-    def start_hole_punch(self, peer_ip: str, peer_port: int, timeout: int = 10):
-        """
-        Lance un hole punching TCP en parallèle :
-        - démarre le serveur en écoute sur le port local
-        - tente une connexion vers le pair en même temps
-        """
-        self.message_callback(f"[HOLEPUNCH] Tentative de hole punching vers {peer_ip}:{peer_port}")
-
-        self._peer_connection_details = (peer_ip, peer_port)
-        self._is_server_mode = False
-
-        if not self._server_running:
-            self.start_server()
-        else:
-            self.message_callback("[HOLEPUNCH] Serveur déjà en écoute")
-
-        # Lancer la tentative de connexion après un très léger délai
-        def try_connect_later():
-            time.sleep(0.3)  # laisser le serveur démarrer
-            success = self.connect_to_peer(peer_ip, peer_port, timeout)
-            if not success:
-                self.message_callback(Fore.LIGHTRED_EX + "[HOLEPUNCH] Échec de la connexion directe. NAT peut bloquer ou pair injoignable." + Style.RESET_ALL)
-
-        threading.Thread(target=try_connect_later, daemon=True).start()

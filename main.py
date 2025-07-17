@@ -30,7 +30,7 @@ def print_banner():
 
 def main():
     if len(sys.argv) != 1:
-        print("Usage: python main.py <port>")
+        print("Usage: python main.py <port (optional, default : 34567)>")
         print("Exemple: python main.py 34567")
         return
 

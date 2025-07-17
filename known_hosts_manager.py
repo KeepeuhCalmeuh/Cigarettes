@@ -31,18 +31,18 @@ def get_nickname(fingerprint):
 
 def add_host(address: str, fingerprint: str) -> bool:
     """
-    Ajoute un hôte à known_hosts.json.
-    Accepte <IP>:<PORT> ou <onion> (ou <onion>:<PORT>).
-    Retourne True en cas de succès, False sinon.
+    Add a host to known_hosts.json.
+    Accepts <IP>:<PORT> or <onion> (or <onion>:<PORT>).
+    Returns True on success, False otherwise.
     """
     if not address:
         print("Error: Address cannot be empty.")
-        print("Usage: /addHost <IP_ADDRESS>:<PORT> <FINGERPRINT> ou /addHost <ONION> <FINGERPRINT>")
+        print("Usage: /addHost <IP_ADDRESS>:<PORT> <FINGERPRINT> or /addHost <ONION> <FINGERPRINT>")
         return False
 
     is_onion = address.endswith('.onion') or ('.onion:' in address)
     if is_onion:
-        # .onion seul ou .onion:port
+        # .onion alone or .onion:port
         if ':' in address:
             onion, port = address.rsplit(':', 1)
             if not onion.endswith('.onion'):
@@ -70,7 +70,7 @@ def add_host(address: str, fingerprint: str) -> bool:
         save_known_hosts(data)
         print(f"Host {address} with fingerprint {fingerprint} added successfully.")
         return True
-    # IP classique
+    # IP classic
     if ':' not in address:
         print("Error: Invalid IP:Port format. Port is missing.")
         print("Usage: /addHost <IP_ADDRESS>:<PORT> <FINGERPRINT>")
@@ -116,11 +116,11 @@ def list_known_hosts():
     for address, fingerprint in hosts.items():
         nickname = nicknames.get(fingerprint, "N/A")
         if address.endswith('.onion') or ('.onion:' in address):
-            print(f"Onion: {address:<40}\nFingerprint: {fingerprint:<65} Nickname: {nickname}")
+            print(f"Onion: {address:<40}\nFingerprint: {fingerprint:<65} Nickname: {nickname}\n")
         else:
             if ':' in address:
                 ip, port = address.split(':', 1)
-                print(f"IP: {ip:<15} Port: {port:<5} \nFingerprint: {fingerprint:<65} Nickname: {nickname}")
+                print(f"IP: {ip:<15} Port: {port:<5} \nFingerprint: {fingerprint:<65} Nickname: {nickname}\n")
             else:
-                print(f"Address: {address:<20}\nFingerprint: {fingerprint:<65} Nickname: {nickname}")
+                print(f"Address: {address:<20}\nFingerprint: {fingerprint:<65} Nickname: {nickname}\n")
     print("------------------")
