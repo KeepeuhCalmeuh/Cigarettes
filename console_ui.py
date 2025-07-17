@@ -6,7 +6,6 @@ from datetime import datetime
 from known_hosts_manager import get_nickname, set_nickname, add_host, list_known_hosts
 import os
 from colorama import Fore, Style
-from local_ip_utils import get_public_ip_and_port
 
 try:
     import keyboard

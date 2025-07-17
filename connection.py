@@ -7,10 +7,9 @@ from crypto_utils import CryptoManager
 from datetime import datetime
 import ipaddress
 from known_hosts_manager import get_nickname
-from local_ip_utils import get_local_ip, get_public_ip
 import os
 from colorama import Fore, Style
-import socks  # Ajout pour le support SOCKS5 (PySocks)
+import socks 
 
 
 class P2PConnection:
@@ -282,13 +281,11 @@ class P2PConnection:
 
     def _verify_tofu_identity(self, peer_ip: str, peer_port: int, mode: str) -> bool:
         """
-        Vérifie la clé publique du pair contre known_hosts pour TOFU.
-        Accepte les adresses .onion comme identifiant unique (clé dans known_hosts),
-        ou IP:port pour les connexions classiques.
+        Vérifie si le fingerprint du pair est déjà enregistré dans known_hosts.json (clé 'hosts').
+        Si oui, accepte la connexion. Sinon, refuse.
         """
         known_hosts_path = "known_hosts.json"
         known_hosts = {"hosts": {}, "nicknames": {}}
-        
         try:
             with open(known_hosts_path, "r", encoding="utf-8") as f:
                 loaded_data = json.load(f)
@@ -296,7 +293,6 @@ class P2PConnection:
                     known_hosts["hosts"] = loaded_data["hosts"]
                 if "nicknames" in loaded_data:
                     known_hosts["nicknames"] = loaded_data["nicknames"]
-
         except (FileNotFoundError, json.JSONDecodeError):
             try:
                 with open(known_hosts_path, "w", encoding="utf-8") as f:
@@ -305,59 +301,15 @@ class P2PConnection:
             except IOError as e:
                 self.message_callback(f"[ERROR] Could not create known_hosts.json: {e}")
                 return False
-            self.message_callback(f"[SECURITY] No known hosts found. Refusing connection from {peer_ip}:{peer_port}.")
+            self.message_callback(f"[SECURITY] No known hosts found. Refusing connection.")
             return False
-
         peer_fingerprint = self.crypto.get_peer_fingerprint()
-
-        # --- Gestion .onion ---
-        is_onion = peer_ip.endswith('.onion')
-        if is_onion:
-            # Cherche d'abord la clé .onion seule, puis .onion:port
-            key_onion = peer_ip
-            key_onion_port = f"{peer_ip}:{peer_port}"
-            if key_onion in known_hosts["hosts"]:
-                expected_fingerprint = known_hosts["hosts"][key_onion]
-                if expected_fingerprint != peer_fingerprint:
-                    self.message_callback(Fore.RED + f"[SECURITY] WARNING: The peer key for {key_onion} has changed! Connection refused."+ Style.RESET_ALL)
-                    return False
-                else:
-                    self.message_callback(Fore.LIGHTGREEN_EX + f"[TOFU] Known peer {key_onion} verified." + Style.RESET_ALL)
-                    return True
-            elif key_onion_port in known_hosts["hosts"]:
-                expected_fingerprint = known_hosts["hosts"][key_onion_port]
-                if expected_fingerprint != peer_fingerprint:
-                    self.message_callback(Fore.RED + f"[SECURITY] WARNING: The peer key for {key_onion_port} has changed! Connection refused."+ Style.RESET_ALL)
-                    return False
-                else:
-                    self.message_callback(Fore.LIGHTGREEN_EX + f"[TOFU] Known peer {key_onion_port} verified." + Style.RESET_ALL)
-                    return True
-            # Si pas trouvé, refuse
-            self.message_callback(Fore.LIGHTRED_EX + f"[SECURITY] UNKNOWN .onion {peer_ip} attempted connection. Connection refused. "
-                                  f"Peer fingerprint: {peer_fingerprint}. Please add it to known_hosts.json manually if desired." + Style.RESET_ALL)
-            return False
-
-        # --- Gestion IP classique ---
-        is_known_by_ip_port = f"{peer_ip}:{peer_port}" in known_hosts["hosts"]
-        is_known_by_ip_only = peer_ip in known_hosts["hosts"]
-
-        if is_known_by_ip_port:
-            expected_fingerprint = known_hosts["hosts"][f"{peer_ip}:{peer_port}"]
-            if expected_fingerprint != peer_fingerprint:
-                self.message_callback(Fore.RED + f"[SECURITY] WARNING: The peer key for {peer_ip}:{peer_port} has changed! Connection refused."+ Style.RESET_ALL)
-                return False
-            else:
-                self.message_callback(Fore.LIGHTGREEN_EX + f"[TOFU] Known peer {peer_ip}:{peer_port} verified." + Style.RESET_ALL)
-                return True
-        for stored_host_id, stored_fingerprint in known_hosts["hosts"].items():
-            if ':' not in stored_host_id:
-                continue
-            stored_ip, _ = stored_host_id.split(':', 1)
-            if stored_ip == peer_ip and stored_fingerprint == peer_fingerprint:
-                self.message_callback(Fore.LIGHTGREEN_EX +f"[TOFU] Known peer {peer_ip} with fingerprint matched (different port {peer_port}). Verified."+ Style.RESET_ALL)
-                return True
-        self.message_callback(Fore.LIGHTRED_EX + f"[SECURITY] UNKNOWN peer {peer_ip}:{peer_port} attempted connection. Connection refused. "
-                              f"Peer fingerprint: {peer_fingerprint}. Please add it to known_hosts.json manually if desired." + Style.RESET_ALL)
+        # Vérifie si le fingerprint est déjà enregistré dans n'importe quelle entrée
+        if peer_fingerprint in known_hosts["hosts"].values():
+            self.message_callback(Fore.LIGHTGREEN_EX + f"[TOFU] Known fingerprint {peer_fingerprint} verified." + Style.RESET_ALL)
+            return True
+        self.message_callback(Fore.LIGHTRED_EX + f"[SECURITY] UNKNOWN fingerprint {peer_fingerprint}. Connection refused. "
+                              f"Please add it to known_hosts.json manually if desired." + Style.RESET_ALL)
         return False
 
     def _initialize_renewal_trackers(self):
