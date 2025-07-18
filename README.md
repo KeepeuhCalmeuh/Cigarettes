@@ -9,12 +9,13 @@ A command-line encrypted P2P messaging application using modern cryptographic te
 - Diffie-Hellman key exchange on an elliptic curve
 - Message encryption with AES-256-GCM
 - Identity verification using public key fingerprints
+- SMSoIP over the Tor Network
 - Simple command-line interface
 
 ## Prerequisites
 
 - Python 3.8+
-- Cryptography package
+- Cryptography, Socks, Colorama, Requests packages
 
 ## Installation
 
@@ -23,7 +24,9 @@ A command-line encrypted P2P messaging application using modern cryptographic te
 ```bash
 python -m venv venv
 source venv/bin/activate # Linux/MacOS
-# or
+```
+or
+```bash
 .\venv\Scripts\activate # Windows
 ```
 
@@ -32,13 +35,14 @@ source venv/bin/activate # Linux/MacOS
 ```bash
 pip install -r requirements.txt
 ```
-
 ## Usage
 
 0. Install Tor dependencies :
 ```bash
 python tor_manager.py
 ```
+**Please note that Tor currently does not support ARM machines and therefore Cigarettes is not deployable**
+
 
 1. Start the application :
 
@@ -89,6 +93,7 @@ For example: `/connect yq5jjvr7drkjrelzhut7kgclfuro65jjlivyzfmxiq2kyv5lickrl4qd.
 
 
 ## Known Limitations / TODOs
+- ARM systems support
 
 
 ## Note
