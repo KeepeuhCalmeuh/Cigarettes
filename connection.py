@@ -42,6 +42,7 @@ class P2PConnection:
         # Ping functionality
         self._ping_responses = {}  # Dictionary to store ping responses
         self._ping_lock = threading.Lock()  # Lock for thread-safe ping operations
+        self._pending_file_path = None  # Stocke le chemin du fichier à envoyer en attente d'acceptation
 
     def start_server(self):
         """Starts the server listening for incoming connections"""
@@ -586,6 +587,7 @@ class P2PConnection:
             "file_name": file_name,
             "file_size": file_size
         }
+        self._pending_file_path = file_path  # On mémorise le fichier à envoyer
         self.send_message("__FILE_REQUEST__" + str(request))
         # Wait for confirmation (handled in UI logic)
         # Actual file sending will be triggered by UI after confirmation
@@ -622,15 +624,20 @@ class P2PConnection:
                 request = eval(message[len("__FILE_REQUEST__"):])
                 file_name = request.get("file_name")
                 file_size = request.get("file_size")
-                self.message_callback(f"[FILE REQUEST] File request received: {file_name} ({file_size} bytes). Accept? (yes/no)")
+                self.message_callback(f"[FILE REQUEST] File request received: {file_name} ({file_size} bytes). Accept? (__FILE_ACCEPT__ or __FILE_DECLINE__)")
             except Exception as e:
                 self.message_callback(f"[FILE REQUEST] Error parsing request: {e}")
             return True
         elif message.startswith("__FILE_ACCEPT__"):
             # UI should start receiving file data
+            if self._pending_file_path:
+                self.send_file_data(self._pending_file_path)
+                self._pending_file_path = None
             return True
         elif message.startswith("__FILE_DECLINE__"):
             # UI should notify user
+            self._pending_file_path = None
+            self.message_callback("[FILE REQUEST] File transfer request was declined by the peer.")
             return True
         elif message.startswith("__FILE_END__"):
             # End of file transfer
