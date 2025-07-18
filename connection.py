@@ -618,6 +618,13 @@ class P2PConnection:
         """
         if message.startswith("__FILE_REQUEST__"):
             # UI should prompt user for confirmation
+            try:
+                request = eval(message[len("__FILE_REQUEST__"):])
+                file_name = request.get("file_name")
+                file_size = request.get("file_size")
+                self.message_callback(f"[FILE REQUEST] File request received: {file_name} ({file_size} bytes). Accept? (yes/no)")
+            except Exception as e:
+                self.message_callback(f"[FILE REQUEST] Error parsing request: {e}")
             return True
         elif message.startswith("__FILE_ACCEPT__"):
             # UI should start receiving file data
