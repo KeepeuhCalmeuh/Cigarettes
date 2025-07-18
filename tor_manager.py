@@ -152,9 +152,7 @@ def download_tor():
 
 def extract_tor(archive_path):
     """Extracts Tor archive into the tor/ folder and cleans up the archive."""
-    # The temporary directory containing the archive
     temp_dir = os.path.dirname(archive_path)
-    
     print(f"Extracting {archive_path} to {TOR_DIR}...")
     try:
         if archive_path.endswith('.zip'):
@@ -163,14 +161,12 @@ def extract_tor(archive_path):
         elif archive_path.endswith('.tar.xz') or archive_path.endswith('.tar.gz'):
             mode = 'r:xz' if archive_path.endswith('.tar.xz') else 'r:gz'
             with tarfile.open(archive_path, mode) as tar_ref:
-                # This ensures files are extracted directly into TOR_DIR, avoiding a nested folder
                 for member in tar_ref.getmembers():
-                    # Strip the top-level directory from the archive (e.g., "tor-expert-bundle-...")
-                    parts = member.path.split(os.path.sep, 1)
-                    if len(parts) > 1:
-                        member.path = parts[1]
+                    # Remove the top-level directory from the path
+                    member_path = member.name.split('/', 1)
+                    if len(member_path) > 1 and member_path[1]:
+                        member.name = member_path[1]
                         tar_ref.extract(member, TOR_DIR)
-
         print("Extraction completed.")
     except Exception as e:
         print(f"An error occurred during extraction: {e}")
@@ -232,24 +228,23 @@ def wait_for_tor_ready(timeout=60):
 
 def create_hidden_service_dir(port, base_dir=None):
     """
-    Creates folder and torrc file for a Hidden Service exposing the given local port.
-    Returns Hidden Service folder path and generated torrc path.
+    Crée un dossier fixe pour le Hidden Service afin de conserver la même adresse .onion.
     """
-    
     if base_dir is None:
         base_dir = os.path.join(TOR_DIR, 'hidden_service')
     os.makedirs(base_dir, exist_ok=True)
-    
-    hs_dir = tempfile.mkdtemp(dir=base_dir)
-    print(f"Created temporary hidden service directory: {hs_dir}")
-    torrc_path = os.path.join(base_dir, 'torrc')
 
+    # Utiliser un dossier fixe pour le service
+    hs_dir = os.path.join(base_dir, 'my_service')
+    os.makedirs(hs_dir, exist_ok=True)
+
+    torrc_path = os.path.join(base_dir, 'torrc')
     with open(torrc_path, 'w') as f:
         f.write(f"SocksPort {TOR_SOCKS_PORT}\n")
         f.write(f"DataDirectory {os.path.join(hs_dir, 'data')}\n")
         f.write(f"HiddenServiceDir {hs_dir}\n")
         f.write(f"HiddenServicePort {port} 127.0.0.1:{port}\n")
-    
+
     return hs_dir, torrc_path
 
 

@@ -43,8 +43,43 @@ class ConsoleUI:
         print("Waiting for connection on the specified port...\n")
 
     def handle_message(self, message: str):
-        """Callback to display received messages with timestamp and save in history"""
+        """Callback to display received messages with timestamp and save in history, and handle file transfer protocol."""
         now = datetime.now().strftime("%H:%M:%S")
+        # File transfer protocol handling
+        if hasattr(self, '_pending_file') and self._pending_file.get('status') == 'waiting':
+            # Handle peer response to file request
+            if message.startswith("__FILE_ACCEPT__"):
+                print(Fore.LIGHTGREEN_EX + f"[INFO] Peer accepted file transfer. Sending file..." + Style.RESET_ALL)
+                self._pending_file['status'] = 'sending'
+                self.connection.send_file_data(self._pending_file['file_path'], callback=lambda p: print(Fore.LIGHTCYAN_EX + f"[INFO] Sending progress: {p*100:.1f}%" + Style.RESET_ALL, end='\r'))
+                print(Fore.LIGHTGREEN_EX + f"[INFO] File sent successfully!" + Style.RESET_ALL)
+                del self._pending_file
+                return
+            elif message.startswith("__FILE_DECLINE__"):
+                print(Fore.LIGHTRED_EX + f"[INFO] Peer declined the file transfer." + Style.RESET_ALL)
+                del self._pending_file
+                return
+        # Handle incoming file request
+        if message.startswith("__FILE_REQUEST__"):
+            import ast
+            req = ast.literal_eval(message[len("__FILE_REQUEST__"):])
+            file_name = req['file_name']
+            file_size = req['file_size']
+            print(Fore.LIGHTYELLOW_EX + f"[INFO] Peer wants to send you a file: {file_name} ({file_size} bytes)" + Style.RESET_ALL)
+            resp = input(Fore.LIGHTYELLOW_EX + "Do you want to accept the file? (y/n): " + Style.RESET_ALL).strip().lower()
+            if resp == 'y':
+                print(Fore.LIGHTGREEN_EX + f"[INFO] You accepted the file. Receiving..." + Style.RESET_ALL)
+                self.connection.send_message("__FILE_ACCEPT__")
+                # Receive file
+                path = self.connection.receive_file(file_name, file_size, save_dir="received_files", callback=lambda p: print(Fore.LIGHTCYAN_EX + f"[INFO] Receiving progress: {p*100:.1f}%" + Style.RESET_ALL, end='\r'))
+                print(Fore.LIGHTGREEN_EX + f"\n[INFO] File received and saved to: {path}" + Style.RESET_ALL)
+            else:
+                print(Fore.LIGHTRED_EX + f"[INFO] You declined the file." + Style.RESET_ALL)
+                self.connection.send_message("__FILE_DECLINE__")
+            return
+        if message.startswith("__FILE_END__"):
+            print(Fore.LIGHTGREEN_EX + f"[INFO] File transfer completed." + Style.RESET_ALL)
+            return
         # Handle multi-line received messages
         if '\n' in message:
             lines = message.split('\n')
@@ -422,6 +457,28 @@ class ConsoleUI:
                     print(f"Mode: {'Server' if self.connection._is_server_mode else 'Client'}")
                     print(f"Messages échangés : {self.connection._message_count}")
 
+        elif cmd == "/send_file":
+            # /send_file <file_path>
+            if not self.connection or not self.connection.connected:
+                print(Fore.LIGHTRED_EX + "[ERROR] Not connected to a peer. Use /connect first." + Style.RESET_ALL)
+                return
+            if len(parts) != 2:
+                print(Fore.LIGHTYELLOW_EX + "Usage: /send_file <file_path>" + Style.RESET_ALL)
+                return
+            file_path = parts[1]
+            import os
+            if not os.path.isfile(file_path):
+                print(Fore.LIGHTRED_EX + f"[ERROR] File not found: {file_path}" + Style.RESET_ALL)
+                return
+            # Send file request to peer
+            print(Fore.LIGHTCYAN_EX + f"[INFO] Sending file request for '{file_path}'..." + Style.RESET_ALL)
+            self.connection.send_file(file_path)
+            # Wait for peer response in handle_message
+            self._pending_file = {
+                "file_path": file_path,
+                "status": "waiting"
+            }
+            return
 
         else:
             print(f"Unknown command. Type /help for a list of commands.")

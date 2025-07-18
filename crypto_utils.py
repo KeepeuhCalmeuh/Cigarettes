@@ -119,3 +119,19 @@ class CryptoManager:
         # Decrypting the message
         plaintext = self.cipher.decrypt(nonce, ciphertext, None)
         return plaintext.decode()
+
+    def encrypt_bytes(self, data: bytes) -> bytes:
+        """Encrypts binary data with the session key (for file transfer)"""
+        if not self.session_key:
+            raise ValueError("The session key is not yet established")
+        nonce = os.urandom(12)
+        ciphertext = self.cipher.encrypt(nonce, data, None)
+        return nonce + ciphertext
+
+    def decrypt_bytes(self, encrypted_data: bytes) -> bytes:
+        """Decrypts binary data with the session key (for file transfer)"""
+        if not self.session_key:
+            raise ValueError("The session key is not yet established")
+        nonce = encrypted_data[:12]
+        ciphertext = encrypted_data[12:]
+        return self.cipher.decrypt(nonce, ciphertext, None)

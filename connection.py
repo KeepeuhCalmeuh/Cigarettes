@@ -422,6 +422,10 @@ class P2PConnection:
                 if self._handle_ping_pong(decrypted):
                     continue  # Skip normal message processing for ping/pong
                 
+                # Handle file transfer messages
+                if self._handle_file_transfer(decrypted):
+                    continue # Skip normal message processing for file transfer
+                
                 now = datetime.now().strftime("%H:%M:%S")
                 self.message_callback(Fore.YELLOW + f"[{peer_name} | {now}] {decrypted}"+ Style.RESET_ALL)
                 
@@ -564,6 +568,84 @@ class P2PConnection:
             if not self._reconnect_in_progress.is_set():
                 self._reconnect_in_progress.set()
                 threading.Thread(target=self._trigger_reconnection, daemon=True).start()
+
+    def send_file(self, file_path: str, callback=None):
+        """
+        Encrypts and sends a file to the connected peer. Sends metadata first, then file data in chunks.
+        callback: function(progress: float) for progress updates (optional)
+        """
+        if not self.connected or not self.peer_socket:
+            raise RuntimeError("Not connected to a peer")
+        if not os.path.isfile(file_path):
+            raise FileNotFoundError(f"File not found: {file_path}")
+        file_size = os.path.getsize(file_path)
+        file_name = os.path.basename(file_path)
+        # Send file transfer request (metadata)
+        request = {
+            "type": "file_request",
+            "file_name": file_name,
+            "file_size": file_size
+        }
+        self.send_message("__FILE_REQUEST__" + str(request))
+        # Wait for confirmation (handled in UI logic)
+        # Actual file sending will be triggered by UI after confirmation
+
+    def send_file_data(self, file_path: str, callback=None):
+        """
+        Actually sends the encrypted file data in chunks after confirmation.
+        """
+        CHUNK_SIZE = 4096
+        file_size = os.path.getsize(file_path)
+        sent = 0
+        with open(file_path, "rb") as f:
+            while True:
+                chunk = f.read(CHUNK_SIZE)
+                if not chunk:
+                    break
+                encrypted_chunk = self.crypto.encrypt_bytes(chunk)
+                # Send as special message
+                self._send_raw(encrypted_chunk)
+                sent += len(chunk)
+                if callback:
+                    callback(min(sent / file_size, 1.0))
+        # Notify end of file
+        self.send_message("__FILE_END__")
+
+    def _handle_file_transfer(self, message: str):
+        """
+        Handles incoming file transfer requests and responses.
+        Returns True if handled, False otherwise.
+        """
+        if message.startswith("__FILE_REQUEST__"):
+            # UI should prompt user for confirmation
+            return True
+        elif message.startswith("__FILE_ACCEPT__"):
+            # UI should start receiving file data
+            return True
+        elif message.startswith("__FILE_DECLINE__"):
+            # UI should notify user
+            return True
+        elif message.startswith("__FILE_END__"):
+            # End of file transfer
+            return True
+        return False
+
+    def receive_file(self, file_name: str, file_size: int, save_dir: str = "received_files", callback=None):
+        """
+        Receives an encrypted file and saves it to the specified directory.
+        """
+        os.makedirs(save_dir, exist_ok=True)
+        file_path = os.path.join(save_dir, file_name)
+        received = 0
+        with open(file_path, "wb") as f:
+            while received < file_size:
+                encrypted_chunk = self._receive_raw()
+                chunk = self.crypto.decrypt_bytes(encrypted_chunk)
+                f.write(chunk)
+                received += len(chunk)
+                if callback:
+                    callback(min(received / file_size, 1.0))
+        return file_path
 
     def _send_raw(self, data: bytes):
         """Sends raw data with its size"""
