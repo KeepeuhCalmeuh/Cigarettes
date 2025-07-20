@@ -316,7 +316,7 @@ class P2PConnection:
                 if not self._verify_tofu_identity(peer_ip, peer_port, "client" if send_public_key_first else "server"):
                     return False
             
-            self.message_callback(f"Secure connection established with {self._get_peer_nickname()}")
+            self.message_callback(Fore.LIGHTGREEN_EX + f"[{self._get_peer_nickname()}  |  {datetime.now().strftime('%H:%M:%S')}] Secure connection established" + Style.RESET_ALL)
             return True
             
         except Exception as e:
@@ -448,7 +448,7 @@ class P2PConnection:
                 
                 # Regular message
                 self._message_count += 1
-                self.message_callback(message)
+                self.message_callback(f"[{self._get_peer_nickname()}  |  {datetime.now().strftime('%H:%M:%S')}] {message}")
                 
             except Exception as e:
                 if not self._stop_flag.is_set():

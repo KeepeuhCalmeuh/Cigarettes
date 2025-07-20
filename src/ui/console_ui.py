@@ -62,6 +62,17 @@ class ConsoleUI:
         """
         now = datetime.now().strftime("%H:%M:%S")
         
+        # Gestion de la déconnexion du pair
+        if message.strip() == "__DISCONNECT__":
+            print(Fore.LIGHTYELLOW_EX + "[INFO] The peer has disconnected." + Style.RESET_ALL)
+            if self.connection:
+                self.connection.stop()
+                self.connection.start_server()
+            print("Waiting for new connection...")
+            self.display_help()
+            self._display_prompt()
+            return
+
         # File transfer protocol handling
         if self._pending_file and self._pending_file.get('status') == 'waiting':
             # Handle peer response to file request
@@ -377,8 +388,18 @@ class ConsoleUI:
     def _handle_stop_command(self) -> None:
         """Handle /stop command."""
         if self.connection and self.connection.connected:
+            # Notifier le pair avant de fermer
+            try:
+                self.connection.send_message("__DISCONNECT__")
+            except Exception:
+                pass
             self.connection.stop()
             print("Disconnected from peer.")
+            # Remettre en écoute
+            self.connection.start_server()
+            print("Waiting for new connection...")
+            self.display_help()
+            self._display_prompt()
         else:
             print("Not connected to any peer.")
 
@@ -408,9 +429,9 @@ class ConsoleUI:
             return
             
         print("Pinging peer...")
-        response_time = self.connection.ping_peer()
+        response_time = self.connection.ping_peer()*1000
         if response_time is not None:
-            print(f"Ping response time: {response_time:.3f} seconds")
+            print(Fore.LIGHTBLUE_EX + f"Ping response time: {response_time:.3f} ms" + Style.RESET_ALL)
         else:
             print("Ping failed or timed out.")
 
@@ -482,6 +503,11 @@ class ConsoleUI:
         """Handle /exit command."""
         print("Exiting...")
         self._stop_flag.set()
+        if self.connection and self.connection.connected:
+            try:
+                self.connection.send_message("__DISCONNECT__")
+            except Exception:
+                pass
         if self.connection:
             self.connection.stop()
 
