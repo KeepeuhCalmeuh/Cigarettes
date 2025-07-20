@@ -67,8 +67,9 @@ class P2PConnection:
     def start_server(self) -> None:
         """Start the server listening for incoming connections."""
         if self._server_running:
+            print(f"[LOG] P2P server already running on port {self.listen_port}")
             return
-            
+        
         self._stop_flag.clear()
         self._server_running = True
         
@@ -78,10 +79,9 @@ class P2PConnection:
             self.socket.bind(('0.0.0.0', self.listen_port))
             self.socket.listen(1)
             self._is_server_mode = True
-            
+            print(f"[LOG] P2P server started and listening on port {self.listen_port}")
             self._accept_thread = threading.Thread(target=self._accept_connections, daemon=True)
             self._accept_thread.start()
-            # self.message_callback(f"Listening for connections on port {self.listen_port}...")
         except Exception as e:
             self.message_callback(f"Failed to start server: {str(e)}")
             self._server_running = False
@@ -416,6 +416,7 @@ class P2PConnection:
 
     def _stop_peer_connection(self) -> None:
         """Stop the current peer connection."""
+        print(f"[LOG] Closing P2P peer connection (if any) on port {self.listen_port}")
         self.connected = False
         self._close_peer_socket()
         
@@ -424,6 +425,7 @@ class P2PConnection:
             self._receive_thread.join(timeout=1)
         if self._renewal_thread and self._renewal_thread.is_alive():
             self._renewal_thread.join(timeout=1)
+        print(f"[LOG] P2P peer connection closed (port {self.listen_port})")
 
     def _receive_messages(self) -> None:
         """Thread for receiving and processing messages."""
@@ -670,6 +672,7 @@ class P2PConnection:
 
     def stop(self) -> None:
         """Stop the connection and cleanup."""
+        print(f"[LOG] Stopping P2P server and cleaning up (port {self.listen_port})...")
         self._stop_flag.set()
         self.connected = False
         
@@ -688,6 +691,7 @@ class P2PConnection:
         # Wait for threads
         if self._accept_thread and self._accept_thread.is_alive():
             self._accept_thread.join(timeout=2)
+        print(f"[LOG] P2P server stopped (port {self.listen_port})")
 
     def _validate_ip_address(self, ip: str) -> bool:
         """Validate IP address format."""
