@@ -395,7 +395,6 @@ class ConsoleUI:
             self.connection.stop()  # Ne ferme que la connexion pair-à-pair
             print("Disconnected from peer.")
             print("Waiting for new connection...")
-            self.display_help()
             self._display_prompt()
         else:
             print("Not connected to any peer.")

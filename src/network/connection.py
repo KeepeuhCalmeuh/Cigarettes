@@ -659,11 +659,15 @@ class P2PConnection:
             return b''
 
     def _close_peer_socket(self) -> None:
-        """Close the peer socket."""
+        """Close the peer socket cleanly."""
         if self.peer_socket:
             try:
+                self.peer_socket.shutdown(socket.SHUT_RDWR)
+            except Exception:
+                pass  # Peut déjà être fermé
+            try:
                 self.peer_socket.close()
-            except:
+            except Exception:
                 pass
             self.peer_socket = None
 
