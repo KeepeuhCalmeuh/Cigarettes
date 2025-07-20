@@ -446,6 +446,12 @@ class P2PConnection:
                 if self._handle_file_transfer(message):
                     continue
                 
+                # Handle disconnect
+                if message.strip() == "__DISCONNECT__":
+                    self.message_callback(Fore.LIGHTYELLOW_EX + "[INFO] The peer has disconnected." + Style.RESET_ALL)
+                    self.stop()
+                    return
+
                 # Regular message
                 self._message_count += 1
                 self.message_callback(f"[{self._get_peer_nickname()}  |  {datetime.now().strftime('%H:%M:%S')}] {message}")

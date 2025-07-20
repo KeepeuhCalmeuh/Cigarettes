@@ -408,9 +408,11 @@ class ConsoleUI:
         if not self.history:
             print("No conversation history to save.")
             return
-            
+        
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"conversation_{timestamp}.txt"
+        history_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "history")
+        os.makedirs(history_dir, exist_ok=True)
+        filename = os.path.join(history_dir, f"conversation_{timestamp}.txt")
         
         try:
             with open(filename, 'w', encoding='utf-8') as f:
@@ -419,6 +421,7 @@ class ConsoleUI:
                 for entry in self.history:
                     f.write(f"{entry}\n")
             print(f"Conversation saved to: {filename}")
+            self.connection.send_message(Fore.LIGHTYELLOW_EX + "[INFO] Peer has saved the conversation." + Style.RESET_ALL)
         except Exception as e:
             print(f"Error saving conversation: {str(e)}")
 
