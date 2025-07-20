@@ -67,10 +67,7 @@ class ConsoleUI:
         if message.strip() == "__DISCONNECT__":
             print(Fore.LIGHTYELLOW_EX + "[INFO] The peer has disconnected." + Style.RESET_ALL)
             if self.connection:
-                self.connection.stop()
-                print("Waiting 2 seconds before accepting new connections...")
-                time.sleep(2)
-                self.connection.start_server()
+                self.connection.stop()  # Ne ferme que la connexion pair-à-pair
             print("Waiting for new connection...")
             self.display_help()
             self._display_prompt()
@@ -395,13 +392,10 @@ class ConsoleUI:
                 self.connection.send_message("__DISCONNECT__")
             except Exception:
                 pass
-            self.connection.stop()
+            self.connection.stop()  # Ne ferme que la connexion pair-à-pair
             print("Disconnected from peer.")
-            print("Waiting 2 seconds before accepting new connections...")
-            time.sleep(2)
-            # Remettre en écoute
-            self.connection.start_server()
             print("Waiting for new connection...")
+            self.display_help()
             self._display_prompt()
         else:
             print("Not connected to any peer.")

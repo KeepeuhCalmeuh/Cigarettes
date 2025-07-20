@@ -65,14 +65,12 @@ class P2PConnection:
         self._pending_file_path = None
 
     def start_server(self) -> None:
-        """Start the server listening for incoming connections."""
+        """Start the server listening for incoming connections (idempotent)."""
         if self._server_running:
             print(f"[LOG] P2P server already running on port {self.listen_port}")
             return
-        
         self._stop_flag.clear()
         self._server_running = True
-        
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -415,11 +413,10 @@ class P2PConnection:
         return address.endswith('.onion')
 
     def _stop_peer_connection(self) -> None:
-        """Stop the current peer connection."""
+        """Stop the current peer connection (session only)."""
         print(f"[LOG] Closing P2P peer connection (if any) on port {self.listen_port}")
         self.connected = False
         self._close_peer_socket()
-        
         # Stop threads
         if self._receive_thread and self._receive_thread.is_alive():
             self._receive_thread.join(timeout=1)
@@ -671,27 +668,24 @@ class P2PConnection:
             self.peer_socket = None
 
     def stop(self) -> None:
-        """Stop the connection and cleanup."""
-        print(f"[LOG] Stopping P2P server and cleaning up (port {self.listen_port})...")
-        self._stop_flag.set()
-        self.connected = False
-        
-        # Stop server
+        """Stop only the peer connection, not the server socket."""
+        print(f"[LOG] Stopping P2P peer connection (not the server) on port {self.listen_port}...")
+        self._stop_peer_connection()
+        print(f"[LOG] P2P peer connection stopped (server still listening on port {self.listen_port})")
+
+    def close_server(self) -> None:
+        """Close the server socket (to be called only at application exit)."""
+        print(f"[LOG] Closing P2P server socket on port {self.listen_port}")
+        self._server_running = False
         if self.socket:
             try:
                 self.socket.close()
             except:
                 pass
             self.socket = None
-        self._server_running = False
-        
-        # Stop peer connection
-        self._stop_peer_connection()
-        
-        # Wait for threads
         if self._accept_thread and self._accept_thread.is_alive():
             self._accept_thread.join(timeout=2)
-        print(f"[LOG] P2P server stopped (port {self.listen_port})")
+        print(f"[LOG] P2P server socket closed (port {self.listen_port})")
 
     def _validate_ip_address(self, ip: str) -> bool:
         """Validate IP address format."""
