@@ -14,13 +14,26 @@ class KnownHostsManager:
     Provides methods for adding, removing, and querying host information.
     """
     
-    def __init__(self, hosts_file: str = "known_hosts.json"):
+    def __init__(self, hosts_file: str = None):
         """
         Initialize the hosts manager.
         
         Args:
             hosts_file: Path to the JSON file storing host information
         """
+        # Par défaut, on place known_hosts.json dans le dossier keys/
+        if hosts_file is None:
+            keys_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'keys')
+            os.makedirs(keys_dir, exist_ok=True)
+            hosts_file = os.path.join(keys_dir, "known_hosts.json")
+            # Migration automatique si l'ancien fichier existe à la racine
+            old_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "known_hosts.json")
+            if os.path.exists(old_path) and not os.path.exists(hosts_file):
+                try:
+                    os.rename(old_path, hosts_file)
+                    print(f"[LOG] known_hosts.json migrated to {hosts_file}")
+                except Exception as e:
+                    print(f"[LOG] Could not migrate known_hosts.json: {e}")
         self.hosts_file = hosts_file
         self._data = self._load_data()
 
