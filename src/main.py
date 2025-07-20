@@ -81,9 +81,9 @@ def main():
     
     # Launch Tor with hidden service
     try:
-        print("[LOG] Launching Tor hidden service...")
+        #print("[LOG] Launching Tor hidden service...")
         proc, onion_addr = launch_tor_with_hidden_service(port)
-        print(f"[LOG] Tor process started (pid={proc.pid})")
+        #print(f"[LOG] Tor process started (pid={proc.pid})")
         print(f"Your .onion address : {onion_addr}")
     except Exception as e:
         print(f"Failed to start Tor: {str(e)}")
@@ -94,11 +94,11 @@ def main():
     try:
         ui.start(port)
     finally:
-        print("[LOG] Stopping Tor process...")
+        #print("[LOG] Stopping Tor process...")
         try:
             proc.terminate()
             proc.wait()
-            print("[LOG] Tor process stopped.")
+            #print("[LOG] Tor process stopped.")
         except Exception as e:
             print(f"Error stopping Tor: {str(e)}")
 
