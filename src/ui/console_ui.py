@@ -9,6 +9,7 @@ from typing import Optional, List
 from datetime import datetime
 import os
 from colorama import Fore, Style
+import time
 
 try:
     import keyboard
@@ -67,6 +68,8 @@ class ConsoleUI:
             print(Fore.LIGHTYELLOW_EX + "[INFO] The peer has disconnected." + Style.RESET_ALL)
             if self.connection:
                 self.connection.stop()
+                print("Waiting 2 seconds before accepting new connections...")
+                time.sleep(2)
                 self.connection.start_server()
             print("Waiting for new connection...")
             self.display_help()
@@ -388,17 +391,17 @@ class ConsoleUI:
     def _handle_stop_command(self) -> None:
         """Handle /stop command."""
         if self.connection and self.connection.connected:
-            # Notifier le pair avant de fermer
             try:
                 self.connection.send_message("__DISCONNECT__")
             except Exception:
                 pass
             self.connection.stop()
             print("Disconnected from peer.")
+            print("Waiting 2 seconds before accepting new connections...")
+            time.sleep(2)
             # Remettre en écoute
             self.connection.start_server()
             print("Waiting for new connection...")
-            self.display_help()
             self._display_prompt()
         else:
             print("Not connected to any peer.")
