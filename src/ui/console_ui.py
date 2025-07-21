@@ -10,6 +10,7 @@ from datetime import datetime
 import os
 from colorama import Fore, Style
 import time
+import ast
 
 try:
     import keyboard
@@ -19,6 +20,20 @@ except ImportError:
 
 from ..network.connection import P2PConnection
 from ..core.hosts import KnownHostsManager
+from .command_handlers import (
+    handle_connect_command,
+    handle_status_command,
+    handle_stop_command,
+    handle_save_command,
+    handle_ping_command,
+    handle_info_command,
+    handle_rename_command,
+    handle_addhost_command,
+    handle_removehost_command,
+    handle_listhosts_command,
+    handle_multiline_command,
+    handle_exit_command
+)
 
 
 class ConsoleUI:
@@ -91,7 +106,6 @@ class ConsoleUI:
                 
         # Handle incoming file request
         if message.startswith("__FILE_REQUEST__"):
-            import ast
             req = ast.literal_eval(message[len("__FILE_REQUEST__"):])
             file_name = req['file_name']
             file_size = req['file_size']
@@ -319,31 +333,31 @@ class ConsoleUI:
         
         try:
             if cmd == '/connect':
-                self._handle_connect_command(parts)
+                handle_connect_command(self, parts)
             elif cmd == '/status':
-                self._handle_status_command()
+                handle_status_command(self)
             elif cmd == '/stop':
-                self._handle_stop_command()
+                handle_stop_command(self)
             elif cmd == '/save':
-                self._handle_save_command()
+                handle_save_command(self)
             elif cmd == '/ping':
-                self._handle_ping_command()
+                handle_ping_command(self)
             elif cmd == '/info':
-                self._handle_info_command()
+                handle_info_command(self)
             elif cmd == '/rename':
-                self._handle_rename_command(parts)
+                handle_rename_command(self, parts)
             elif cmd == '/addhost':
-                self._handle_addhost_command(parts)
+                handle_addhost_command(self, parts)
             elif cmd == '/removehost':
-                self._handle_removehost_command(parts)
+                handle_removehost_command(self, parts)
             elif cmd == '/listhosts':
-                self._handle_listhosts_command()
+                handle_listhosts_command(self)
             elif cmd == '/multiline':
-                self._handle_multiline_command()
+                handle_multiline_command(self)
             elif cmd == '/help':
                 self.display_help()
             elif cmd == '/exit':
-                self._handle_exit_command()
+                handle_exit_command(self)
             else:
                 print(f"Unknown command: {cmd}")
                 print("Type /help for available commands.")
@@ -353,162 +367,6 @@ class ConsoleUI:
         
         # Display prompt after command execution
         self._display_prompt()
-
-    def _handle_connect_command(self, parts: List[str]) -> None:
-        """Handle /connect command."""
-        if len(parts) < 3:
-            print("Usage: /connect <peer_onion_address> <PEER_FINGERPRINT> [port]")
-            return
-            
-        onion_address = parts[1]
-        fingerprint = parts[2]
-        port = int(parts[3]) if len(parts) > 3 else 34567
-        
-        if self.connection:
-            self.connection.connect_to_onion_peer(onion_address, fingerprint, port)
-
-    def _handle_status_command(self) -> None:
-        """Handle /status command."""
-        if not self.connection:
-            print("No connection manager available.")
-            return
-            
-        if self.connection.connected:
-            print("Status: Connected")
-            try:
-                peer_fingerprint = self.connection.crypto.get_peer_fingerprint()
-                nickname = self.hosts_manager.get_nickname(peer_fingerprint)
-                print(f"Peer: {nickname if nickname else peer_fingerprint[:8]}")
-                print(f"Fingerprint: {peer_fingerprint}")
-            except:
-                print("Peer: Unknown")
-        else:
-            print("Status: Not connected")
-
-    def _handle_stop_command(self) -> None:
-        """Handle /stop command."""
-        if self.connection and self.connection.connected:
-            try:
-                self.connection.send_message("__DISCONNECT__")
-            except Exception:
-                pass
-            self.connection.stop()  # Ne ferme que la connexion pair-à-pair
-            print("Disconnected from peer.")
-            print("Waiting for new connection...")
-            self._display_prompt()
-        else:
-            print("Not connected to any peer.")
-
-    def _handle_save_command(self) -> None:
-        """Handle /save command."""
-        if not self.history:
-            print("No conversation history to save.")
-            return
-        
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        history_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "history")
-        os.makedirs(history_dir, exist_ok=True)
-        filename = os.path.join(history_dir, f"conversation_{timestamp}.txt")
-        
-        try:
-            with open(filename, 'w', encoding='utf-8') as f:
-                f.write("Conversation History\n")
-                f.write("===================\n\n")
-                for entry in self.history:
-                    f.write(f"{entry}\n")
-            print(f"Conversation saved to: {filename}")
-            self.connection.send_message(Fore.LIGHTYELLOW_EX + "[INFO] Peer has saved the conversation." + Style.RESET_ALL)
-        except Exception as e:
-            print(f"Error saving conversation: {str(e)}")
-
-    def _handle_ping_command(self) -> None:
-        """Handle /ping command."""
-        if not self.connection or not self.connection.connected:
-            print("Not connected to any peer.")
-            return
-            
-        print("Pinging peer...")
-        response_time = self.connection.ping_peer()*1000
-        if response_time is not None:
-            print(Fore.LIGHTBLUE_EX + f"Ping response time: {response_time:.3f} ms" + Style.RESET_ALL)
-        else:
-            print("Ping failed or timed out.")
-
-    def _handle_info_command(self) -> None:
-        """Handle /info command."""
-        if not self.connection:
-            print("No connection manager available.")
-            return
-            
-        try:
-            fingerprint = self.connection.crypto.get_public_key_fingerprint()
-            print(f"Your fingerprint: {fingerprint}")
-            print(f"Listening port: {self.connection.listen_port}")
-            
-            # Show connection status
-            if self.connection.connected:
-                try:
-                    peer_fingerprint = self.connection.crypto.get_peer_fingerprint()
-                    nickname = self.hosts_manager.get_nickname(peer_fingerprint)
-                    print(f"Connected to: {nickname if nickname else peer_fingerprint[:8]}")
-                except:
-                    print("Connected to: Unknown peer")
-            else:
-                print("Not connected to any peer.")
-                
-        except Exception as e:
-            print(f"Error getting info: {str(e)}")
-
-    def _handle_rename_command(self, parts: List[str]) -> None:
-        """Handle /rename command."""
-        if len(parts) != 3:
-            print("Usage: /rename <fingerprint> <new_name>")
-            return
-            
-        fingerprint = parts[1]
-        new_name = parts[2]
-        self.hosts_manager.set_nickname(fingerprint, new_name)
-        print(f"Nickname updated for {fingerprint}")
-
-    def _handle_addhost_command(self, parts: List[str]) -> None:
-        """Handle /addhost command."""
-        if len(parts) != 3:
-            print("Usage: /addHost <peer_onion_address> <fingerprint>")
-            return
-            
-        address = parts[1]
-        fingerprint = parts[2]
-        self.hosts_manager.add_host(address, fingerprint)
-
-    def _handle_removehost_command(self, parts: List[str]) -> None:
-        """Handle /removehost command."""
-        if len(parts) != 2:
-            print("Usage: /removehost <peer_onion_address>")
-            return
-            
-        address = parts[1]
-        self.hosts_manager.remove_host(address)
-
-    def _handle_listhosts_command(self) -> None:
-        """Handle /listhosts command."""
-        self.hosts_manager.list_known_hosts()
-
-    def _handle_multiline_command(self) -> None:
-        """Handle /multiline command."""
-        self._multiline_mode = True
-        print("Multi-line mode activated. Type your message:")
-
-    def _handle_exit_command(self) -> None:
-        """Handle /exit command."""
-        print("Exiting...")
-        self._stop_flag.set()
-        if self.connection and self.connection.connected:
-            try:
-                self.connection.send_message("__DISCONNECT__")
-            except Exception:
-                pass
-        if self.connection:
-            self.connection.stop()
 
     def stop(self) -> None:
         """Stop the UI and cleanup."""
