@@ -1,10 +1,16 @@
-# Gestion des messages et du ping pour P2PConnection
+# Message and ping management mixin for P2PConnection
 from datetime import datetime
 import time
 from colorama import Fore, Style
 
 class MessageMixin:
+    """
+    Mixin for message and ping management in P2PConnection.
+    """
     def _receive_messages(self) -> None:
+        """
+        Thread for receiving and processing messages.
+        """
         while self.connected and not self._stop_flag.is_set():
             try:
                 if not self.peer_socket:
@@ -29,6 +35,11 @@ class MessageMixin:
                     break
 
     def send_message(self, message: str) -> None:
+        """
+        Send an encrypted message to the peer.
+        Args:
+            message: Message to send.
+        """
         if not self.connected or not self.peer_socket:
             return
         try:
@@ -38,6 +49,13 @@ class MessageMixin:
             self.message_callback(f"Error sending message: {str(e)}")
 
     def ping_peer(self, timeout: float = 5.0) -> float:
+        """
+        Ping the connected peer and return response time.
+        Args:
+            timeout: Timeout in seconds.
+        Returns:
+            Response time in seconds, or None if failed.
+        """
         if not self.connected:
             return None
         ping_id = str(int(time.time() * 1000))
@@ -57,6 +75,13 @@ class MessageMixin:
         return None
 
     def _handle_ping_pong(self, message: str) -> bool:
+        """
+        Handle ping/pong messages.
+        Args:
+            message: Message to check for ping/pong.
+        Returns:
+            True if handled as ping/pong, False otherwise.
+        """
         if message.startswith("__PING__"):
             ping_id = message[8:]
             pong_response = f"__PONG__{ping_id}"
@@ -71,6 +96,11 @@ class MessageMixin:
         return False
 
     def _get_peer_nickname(self) -> str:
+        """
+        Get the nickname of the connected peer.
+        Returns:
+            Nickname or short fingerprint, or 'Unknown'.
+        """
         try:
             peer_fingerprint = self.crypto.get_peer_fingerprint()
             nickname = self.hosts_manager.get_nickname(peer_fingerprint)

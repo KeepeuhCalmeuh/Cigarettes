@@ -1,8 +1,17 @@
-# Gestion de l'envoi/réception de fichiers pour P2PConnection
+# File transfer management mixin for P2PConnection
 import os
 
 class FileTransferMixin:
+    """
+    Mixin for file sending/receiving in P2PConnection.
+    """
     def send_file(self, file_path: str, callback=None) -> None:
+        """
+        Send a file to the peer.
+        Args:
+            file_path: Path to the file to send.
+            callback: Progress callback function.
+        """
         if not os.path.exists(file_path):
             self.message_callback(f"File not found: {file_path}")
             return
@@ -16,6 +25,12 @@ class FileTransferMixin:
         self._pending_file_path = file_path
 
     def send_file_data(self, file_path: str, callback=None) -> None:
+        """
+        Send file data after peer accepts.
+        Args:
+            file_path: Path to the file to send.
+            callback: Progress callback function.
+        """
         try:
             with open(file_path, 'rb') as f:
                 while True:
@@ -31,6 +46,16 @@ class FileTransferMixin:
             self.message_callback(f"Error sending file: {str(e)}")
 
     def receive_file(self, file_name: str, file_size: int, save_dir: str = "received_files", callback=None) -> str:
+        """
+        Receive a file from the peer.
+        Args:
+            file_name: Name of the file to receive.
+            file_size: Size of the file in bytes.
+            save_dir: Directory to save the file.
+            callback: Progress callback function.
+        Returns:
+            Path to the saved file.
+        """
         os.makedirs(save_dir, exist_ok=True)
         file_path = os.path.join(save_dir, file_name)
         with open(file_path, 'wb') as f:
@@ -47,6 +72,13 @@ class FileTransferMixin:
         return file_path
 
     def _handle_file_transfer(self, message: str) -> bool:
+        """
+        Handle file transfer protocol messages.
+        Args:
+            message: Message to check for file transfer protocol.
+        Returns:
+            True if handled as file transfer protocol, False otherwise.
+        """
         if message.startswith("__FILE_REQUEST__"):
             import ast
             req = ast.literal_eval(message[len("__FILE_REQUEST__"):])

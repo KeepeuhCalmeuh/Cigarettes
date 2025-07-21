@@ -1,13 +1,26 @@
-# Gestion bas niveau des sockets pour P2PConnection
+# Low-level socket I/O mixin for P2PConnection
 
 class IOMixin:
+    """
+    Mixin for low-level socket I/O in P2PConnection.
+    """
     def _send_raw(self, data: bytes) -> None:
+        """
+        Send raw data to the peer.
+        Args:
+            data: Bytes to send.
+        """
         if self.peer_socket:
             length = len(data)
             self.peer_socket.send(length.to_bytes(4, 'big'))
             self.peer_socket.send(data)
 
     def _receive_raw(self) -> bytes:
+        """
+        Receive raw data from the peer.
+        Returns:
+            Bytes received, or empty bytes if error.
+        """
         if not self.peer_socket:
             return b''
         try:
@@ -26,6 +39,9 @@ class IOMixin:
             return b''
 
     def _close_peer_socket(self) -> None:
+        """
+        Close the peer socket cleanly.
+        """
         if self.peer_socket:
             try:
                 self.peer_socket.shutdown(2)

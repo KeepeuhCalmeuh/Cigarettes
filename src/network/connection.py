@@ -25,6 +25,6 @@ from .connection_io import IOMixin
 class P2PConnection(HandshakeMixin, PeerMixin, MessageMixin, FileTransferMixin, IOMixin, P2PConnectionBase):
     """
     Manages P2P connections with encryption, authentication, and file transfer capabilities.
-    (Héritage multiple de mixins)
+    Multiple inheritance from mixins
     """
     pass

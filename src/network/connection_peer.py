@@ -1,11 +1,23 @@
-# Gestion de la connexion à un pair (client/serveur) pour P2PConnection
+# Peer connection management mixin for P2PConnection
 import socket
 import threading
 import socks
 from colorama import Fore, Style
 
 class PeerMixin:
+    """
+    Mixin for peer connection management (client/server) in P2PConnection.
+    """
     def connect_to_peer(self, peer_ip: str, peer_port: int, timeout: int = 10) -> bool:
+        """
+        Connect to a remote peer with authentication.
+        Args:
+            peer_ip: IP address of the peer.
+            peer_port: Port of the peer.
+            timeout: Connection timeout in seconds.
+        Returns:
+            True if connection successful, False otherwise.
+        """
         if self.connected:
             self.message_callback("Already connected to a peer")
             return False
@@ -45,6 +57,16 @@ class PeerMixin:
             return False
 
     def connect_to_onion_peer(self, onion_address: str, fingerprint: str, port: int = 34567, timeout: int = 10) -> bool:
+        """
+        Connect to a peer via Tor onion address.
+        Args:
+            onion_address: Onion address of the peer.
+            fingerprint: Expected fingerprint of the peer.
+            port: Port number.
+            timeout: Connection timeout in seconds.
+        Returns:
+            True if connection successful, False otherwise.
+        """
         if self.connected:
             self.message_callback("Already connected to a peer")
             return False
@@ -78,6 +100,9 @@ class PeerMixin:
             return False
 
     def _accept_connections(self) -> None:
+        """
+        Thread for accepting incoming connections with authentication.
+        """
         while not self._stop_flag.is_set() and self._server_running:
             try:
                 if not self.socket:

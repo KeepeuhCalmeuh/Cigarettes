@@ -1,5 +1,5 @@
 """
-Base P2P connection management: serveur, état général, arrêt.
+Base P2P connection management: server, general state, shutdown.
 """
 
 import socket
@@ -16,12 +16,18 @@ from ..core.hosts import KnownHostsManager
 class P2PConnection:
     """
     Manages P2P connections with encryption, authentication, and file transfer capabilities.
-    (Base: serveur, état, arrêt)
+    (Base: server, state, shutdown)
     """
     RENEW_AFTER_MESSAGES = 10000
     RENEW_AFTER_MINUTES = 60
 
     def __init__(self, listen_port: int, message_callback: Callable[[str], None]):
+        """
+        Initialize the P2P connection base.
+        Args:
+            listen_port: Port to listen for incoming connections.
+            message_callback: Callback function for received messages.
+        """
         self.listen_port = listen_port
         self.message_callback = message_callback
         self.crypto = CryptoManager()
@@ -44,6 +50,9 @@ class P2PConnection:
         self._pending_file_path = None
 
     def start_server(self) -> None:
+        """
+        Start the server listening for incoming connections (idempotent).
+        """
         if self._server_running:
             return
         self._stop_flag.clear()
@@ -64,9 +73,15 @@ class P2PConnection:
                 self.socket = None
 
     def stop(self) -> None:
+        """
+        Stop only the peer connection, not the server socket.
+        """
         self._stop_peer_connection()
 
     def close_server(self) -> None:
+        """
+        Close the server socket (to be called only at application exit).
+        """
         self._server_running = False
         if self.socket:
             try:
@@ -78,7 +93,10 @@ class P2PConnection:
             self._accept_thread.join(timeout=2)
 
     def _stop_peer_connection(self) -> None:
-        """Stop the current peer connection (session only)."""
+        """
+        Stop the current peer connection (session only).
+        Closes the peer socket and stops related threads.
+        """
         self.connected = False
         self._close_peer_socket()
         # Stop threads
