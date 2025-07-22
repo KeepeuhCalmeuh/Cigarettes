@@ -129,6 +129,7 @@ class ConsoleUI:
             
         # Handle multi-line received messages
         if '\n' in message:
+            print("\n\r")
             lines = message.split('\n')
             line = f"{lines[0]}"
             print(f"\n{line}")
@@ -314,6 +315,7 @@ class ConsoleUI:
             return
             
         try:
+            print(f"[ You | {datetime.now().strftime('%H:%M:%S')} ] {message}")
             self.connection.send_message(message)
         except Exception as e:
             print(f"Error sending message: {str(e)}")
