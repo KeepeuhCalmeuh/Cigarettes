@@ -10,7 +10,7 @@ plan_integration_tor.txt
 tor/
 to_send/
 backup_original/
-
+unit_tests/tests_commands.txt
 
 # Cryptographic keys
 keys/
