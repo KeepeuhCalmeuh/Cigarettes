@@ -117,7 +117,7 @@ class TorManager:
         if os_key in ['Linux', 'Darwin'] and os.path.isfile(path):
             try:
                 os.chmod(path, 0o755)
-                print(f"Ensured {path} is executable.")
+                # print(f"Ensured {path} is executable.")
             except OSError as e:
                 print(f"Warning: Could not set executable permission on {path}: {e}")
         
@@ -207,6 +207,12 @@ class TorManager:
                 stderr=subprocess.PIPE,
                 text=True
             )
+            # Ajoute ce bloc pour lire les erreurs si Tor crash immédiatement
+            time.sleep(2)
+            if process.poll() is not None:  # Tor a quitté
+                out, err = process.communicate()
+                print(f'Tor stdout: {out}')
+                print(f'Tor stderr: {err}')
             return process
         except Exception as e:
             raise RuntimeError(f"Failed to launch Tor: {e}")
@@ -231,14 +237,22 @@ class TorManager:
         print("Timeout waiting for Tor to be ready.")
         return False
 
+    def get_project_root(self) -> str:
+        """Retourne le chemin absolu de la racine du projet (là où se trouve le dossier 'tor')."""
+        return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
     def create_hidden_service_dir(self, port: int, base_dir: Optional[str] = None) -> str:
         """Create hidden service directory and configuration."""
+        # Toujours utiliser la racine du projet comme base_dir
         if base_dir is None:
-            base_dir = os.path.dirname(os.path.abspath(__file__))
-        
+            base_dir = self.get_project_root()
         hidden_service_dir = os.path.join(base_dir, 'tor', 'hidden_service')
         os.makedirs(hidden_service_dir, exist_ok=True)
-        
+        os.chmod(hidden_service_dir, 0o700)
+        # Crée aussi le dossier data avec permissions 700
+        data_dir = os.path.join(base_dir, 'tor', 'data')
+        os.makedirs(data_dir, exist_ok=True)
+        os.chmod(data_dir, 0o700)
         # Create torrc configuration
         torrc_path = os.path.join(base_dir, 'tor', 'torrc')
         with open(torrc_path, 'w') as f:
@@ -247,40 +261,29 @@ class TorManager:
             f.write(f"HiddenServicePort {port} 127.0.0.1:{port}\n")
             f.write("DataDirectory " + os.path.join(base_dir, 'tor', 'data') + "\n")
             f.write("PidFile " + os.path.join(base_dir, 'tor', 'tor.pid') + "\n")
-        
         return hidden_service_dir
 
     def launch_tor_with_hidden_service(self, port: int, base_dir: Optional[str] = None) -> Tuple[subprocess.Popen, str]:
         """
         Launch Tor with hidden service configuration.
-        
-        Args:
-            port: Port for the hidden service
-            base_dir: Base directory for Tor files
-            
-        Returns:
-            Tuple of (Tor process, onion address)
         """
         # Ensure Tor is available
         self.ensure_tor()
-        
+        # Toujours utiliser la racine du projet comme base_dir
+        if base_dir is None:
+            base_dir = self.get_project_root()
         # Create hidden service directory
         hidden_service_dir = self.create_hidden_service_dir(port, base_dir)
-        
         # Launch Tor
-        torrc_path = os.path.join(base_dir or os.path.dirname(os.path.abspath(__file__)), 'tor', 'torrc')
+        torrc_path = os.path.join(base_dir, 'tor', 'torrc')
         extra_args = ['-f', torrc_path]
-        
         self.tor_process = self.launch_tor(extra_args)
-        
         # Wait for Tor to be ready
         if not self.wait_for_tor_ready():
             raise RuntimeError("Tor failed to start properly")
-        
         # Read onion address
         hostname_file = os.path.join(hidden_service_dir, 'hostname')
         onion_address = None
-        
         # Wait for hostname file to be created
         timeout = 30
         start_time = time.time()
@@ -290,10 +293,8 @@ class TorManager:
                     onion_address = f.read().strip()
                 break
             time.sleep(1)
-        
         if not onion_address:
             raise RuntimeError("Failed to get onion address from Tor")
-        
         return self.tor_process, onion_address
 
     def stop_tor(self) -> None:
