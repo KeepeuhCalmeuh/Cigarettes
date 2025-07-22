@@ -3,6 +3,7 @@ import socket
 import threading
 import socks
 from colorama import Fore, Style
+from datetime import datetime
 
 class PeerMixin:
     """
@@ -32,7 +33,7 @@ class PeerMixin:
         self._peer_connection_details = (peer_ip, peer_port)
         self._is_server_mode = False
         try:
-            self.message_callback(f"Attempting to connect to {peer_ip}:{peer_port}...")
+            self.message_callback(Fore.LIGHTYELLOW_EX + f"[{datetime.now().strftime('%H:%M:%S')}] Attempting to connect to {peer_ip}:{peer_port}..." + Style.RESET_ALL)
             self.peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.peer_socket.settimeout(timeout)
             self.peer_socket.connect((peer_ip, peer_port))
@@ -67,14 +68,14 @@ class PeerMixin:
         Returns:
             True if connection successful, False otherwise.
         """
-        if self.connected:
+        if self.connected: 
             self.message_callback("Already connected to a peer")
             return False
         self._stop_peer_connection()
         self._peer_connection_details = (onion_address, port)
         self._is_server_mode = False
         try:
-            self.message_callback(f"Attempting to connect to {onion_address}:{port} via Tor...")
+            self.message_callback(Fore.LIGHTYELLOW_EX + f"[{datetime.now().strftime('%H:%M:%S')}] Attempting to connect to {onion_address}:{port} via Tor..." + Style.RESET_ALL)
             self.peer_socket = socks.socksocket()
             self.peer_socket.set_proxy(socks.SOCKS5, "127.0.0.1", 9050)
             self.peer_socket.settimeout(timeout)
@@ -115,6 +116,7 @@ class PeerMixin:
                     continue
                 self._stop_peer_connection()
                 self.peer_socket = client_socket
+                self.peer_socket.settimeout(5)  # Timeout pour éviter blocage sur recv
                 self._peer_connection_details = address
                 self._is_server_mode = True
                 self.message_callback(f"Incoming connection from {address} received.")

@@ -272,8 +272,8 @@ class ConsoleUI:
         self.connection.start_server()
         
         # Display startup information
-        print(f"Listening on port {port}")
-        print(f"Your fingerprint: {self.connection.crypto.get_public_key_fingerprint()}")
+        print(Fore.LIGHTCYAN_EX + f"Listening on port {port}" + Style.RESET_ALL)
+        print(Fore.LIGHTCYAN_EX + f"Your fingerprint: {self.connection.crypto.get_public_key_fingerprint()}" + Style.RESET_ALL)
         
         self.display_help()
         self._display_prompt()

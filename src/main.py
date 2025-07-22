@@ -84,7 +84,7 @@ def main():
         #print("[LOG] Launching Tor hidden service...")
         proc, onion_addr = launch_tor_with_hidden_service(port)
         #print(f"[LOG] Tor process started (pid={proc.pid})")
-        print(f"Your .onion address : {onion_addr}")
+        print(Fore.LIGHTCYAN_EX + f"Your .onion address : {onion_addr}" + Style.RESET_ALL)
     except Exception as e:
         print(f"Failed to start Tor: {str(e)}")
         return

@@ -17,6 +17,8 @@ class MessageMixin:
                     break
                 encrypted_data = self._receive_raw()
                 if not encrypted_data:
+                    self.message_callback(Fore.LIGHTYELLOW_EX + "[INFO] The peer has closed the connection or disconnected." + Style.RESET_ALL)
+                    self.stop()
                     break
                 message = self.crypto.decrypt_message(encrypted_data)
                 if self._handle_ping_pong(message):
@@ -105,7 +107,7 @@ class MessageMixin:
         try:
             peer_fingerprint = self.crypto.get_peer_fingerprint()
             nickname = self.hosts_manager.get_nickname(peer_fingerprint)
-            print(f"Nickname: {nickname}")
+            # print(f"Nickname: {nickname}")
             return nickname if nickname else peer_fingerprint[:8]
         except:
             return "Unknown" 

@@ -5,7 +5,7 @@ Handles host addresses, fingerprints, and nicknames.
 
 import json
 import os
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, List
 
 
 class KnownHostsManager:
@@ -166,6 +166,10 @@ class KnownHostsManager:
             The fingerprint if found, None otherwise
         """
         return self._data.get("hosts", {}).get(address)
+
+    def get_all_fingerprints(self) -> List[str]:
+        """Get all fingerprints from known hosts."""
+        return list(self._data.get("hosts", {}).values())
 
     def _validate_fingerprint(self, fingerprint: str) -> bool:
         """Validate fingerprint format."""

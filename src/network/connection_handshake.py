@@ -57,7 +57,7 @@ class HandshakeMixin:
             if peer_ip and peer_port:
                 if not self._verify_tofu_identity(peer_ip, peer_port, "client" if send_public_key_first else "server"):
                     return False
-            self.message_callback(Fore.LIGHTGREEN_EX + f"[{self._get_peer_nickname()}  |  {datetime.now().strftime('%H:%M:%S')}] Secure connection established" + Style.RESET_ALL)
+            self.message_callback(Fore.LIGHTGREEN_EX + f"[{datetime.now().strftime('%H:%M:%S')}] Secure connection established" + Style.RESET_ALL)
             return True
         except Exception as e:
             self.message_callback(f"Handshake failed: {str(e)}")
@@ -75,19 +75,15 @@ class HandshakeMixin:
         """
         try:
             peer_fingerprint = self.crypto.get_peer_fingerprint()
-            expected_fingerprint = self.hosts_manager.get_host_fingerprint(f"{peer_ip}:{peer_port}")
-            if expected_fingerprint:
-                if expected_fingerprint != peer_fingerprint:
-                    self.message_callback(f"WARNING: Peer fingerprint mismatch!")
-                    self.message_callback(f"Expected: {expected_fingerprint}")
-                    self.message_callback(f"Received: {peer_fingerprint}")
-                    return False
-                else:
-                    self.message_callback(f"Peer identity verified (TOFU)")
+            # > Strict verification: only accept if peer_fingerprint is already in known_hosts.json
+            known_fingerprints = self.hosts_manager.get_all_fingerprints()
+            if peer_fingerprint in known_fingerprints:
+                self.message_callback(Fore.LIGHTGREEN_EX + f"[{datetime.now().strftime('%H:%M:%S')}] Peer identity verified: {peer_fingerprint}" + Style.RESET_ALL)
+                return True
             else:
-                self.message_callback(f"New peer: {peer_fingerprint}")
-                self.message_callback(f"Add to known hosts with: /addHost {peer_ip}:{peer_port} {peer_fingerprint}")
-            return True
+                self.message_callback(f"Connection refused: unknown peer fingerprint {peer_fingerprint}")
+                self.message_callback(f"Add this peer to known hosts with: /addHost {peer_ip}:{peer_port} {peer_fingerprint}")
+                return False
         except Exception as e:
             self.message_callback(f"TOFU verification failed: {str(e)}")
             return False
