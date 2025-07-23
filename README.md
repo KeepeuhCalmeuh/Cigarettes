@@ -37,12 +37,7 @@ pip install -r requirements.txt
 ```
 ## Usage
 
-0. Install Tor dependencies :
-```bash
-python tor_manager.py
-```
 **Please note that Tor currently does not support ARM machines and therefore Cigarettes is not deployable**
-
 
 1. Start the application :
 

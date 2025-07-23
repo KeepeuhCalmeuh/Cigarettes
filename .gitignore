@@ -9,3 +9,11 @@ note.txt
 plan_integration_tor.txt
 tor/
 to_send/
+backup_original/
+
+# Unit tests
+unit_tests/tests_commands.txt
+.pytest_cache/
+
+# Cryptographic keys
+keys/
