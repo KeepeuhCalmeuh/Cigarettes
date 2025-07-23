@@ -116,7 +116,7 @@ class PeerMixin:
                     continue
                 self._stop_peer_connection()
                 self.peer_socket = client_socket
-                self.peer_socket.settimeout(5)  # Timeout pour éviter blocage sur recv
+                #self.peer_socket.settimeout(5)  # Timeout pour éviter blocage sur recv
                 self._peer_connection_details = address
                 self._is_server_mode = True
                 self.message_callback(f"Incoming connection from {address} received.")
