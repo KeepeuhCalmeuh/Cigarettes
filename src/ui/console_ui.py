@@ -129,7 +129,7 @@ class ConsoleUI:
         if "__FILE_TRANSFER_DECLINED__" in message:
             file_transfer.reset_all_file_transfer_state()
             print(Fore.LIGHTRED_EX + "> [INFO] File transfer was declined by the peer." + Style.RESET_ALL)
-            print(Fore.LIGHTYELLOW_EX + "[BUG TO FIX] [The next message received will be bugged and not displayed, the second message will be displayed as normal]" + Style.RESET_ALL)
+            print(Fore.LIGHTYELLOW_EX + "[BUG TO FIX] [The next message received by the peer will be bugged and not displayed to the peer, the second message will be displayed as normal to the peer]" + Style.RESET_ALL)
             self._display_prompt()
             return
 
