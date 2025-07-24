@@ -1,6 +1,7 @@
 from colorama import Fore, Style
 from datetime import datetime
 import os
+from src.core import file_transfer
 
 # command handlers
 
@@ -133,4 +134,35 @@ def handle_exit_command(console_ui):
         except Exception:
             pass
     if console_ui.connection:
-        console_ui.connection.stop() 
+        console_ui.connection.stop()
+
+def handle_send_file_command(console_ui, parts):
+    if len(parts) != 2:
+        print("Usage: /send_file <file_path>")
+        return
+    file_path = parts[1]
+    msg = file_transfer.initiate_file_transfer(file_path)
+    if not msg:
+        print("[ERROR] File not found or cannot be read.")
+        return
+    print(f"> [INFO] Preparing to send file: {file_path}")
+    console_ui.connection.send_message(msg)
+    print("> [INFO] File transfer request sent. Waiting for acceptance...")
+
+
+def handle_file_accept_command(console_ui, parts):
+    if not file_transfer.FILE_TRANSFER_BOOL:
+        print("> [INFO] No file transfer to accept.")
+        return
+    msg = file_transfer.accept_file_transfer()
+    console_ui.connection.send_message(msg)
+    print("> [INFO] File transfer accepted. Waiting for file...")
+
+
+def handle_file_decline_command(console_ui, parts):
+    if not file_transfer.FILE_TRANSFER_BOOL:
+        print("> [INFO] No file transfer to decline.")
+        return
+    print(file_transfer.decline_file_transfer())
+    console_ui.connection.send_message("__FILE_TRANSFER_DECLINED__")
+    print("> [INFO] File transfer declined.") 

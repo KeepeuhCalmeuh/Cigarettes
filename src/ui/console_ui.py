@@ -11,6 +11,8 @@ import os
 from colorama import Fore, Style
 import time
 import ast
+from src.core import file_transfer
+
 
 try:
     import keyboard
@@ -32,7 +34,10 @@ from .command_handlers import (
     handle_removehost_command,
     handle_listhosts_command,
     handle_multiline_command,
-    handle_exit_command
+    handle_exit_command,
+    handle_send_file_command,
+    handle_file_accept_command,
+    handle_file_decline_command
 )
 
 
@@ -78,6 +83,36 @@ class ConsoleUI:
         """
         now = datetime.now().strftime("%H:%M:%S")
         
+        # Détection message de demande de transfert de fichier
+        info_msg = file_transfer.handle_file_transfer_request(message)
+        if info_msg:
+            print(f"> {info_msg}")
+            self._display_prompt()
+            return
+
+        # Détection acceptation transfert côté émetteur
+        if file_transfer.FILE_TRANSFER_PROCEDURE and message.startswith("__FILE_TRANSFER_ACCEPTED__"):
+            print("> [INFO] File transfer accepted by peer. Sending file...")
+            chunks = file_transfer.handle_file_transfer_accepted()
+            for idx, chunk in enumerate(chunks):
+                self.connection.send_message(chunk)
+                print(f"> [INFO] Sending chunk {idx+1}/{len(chunks)}", end='\r')
+            print("> [INFO] File sent successfully!")
+            self._display_prompt()
+            return
+
+        # Réception de chunk de fichier (à adapter selon protocole réel)
+        if file_transfer.FILE_TRANSFER_BOOL and isinstance(message, bytes):
+            done = file_transfer.receive_file_chunk(message)
+            # Affichage barre de progression ASCII (à améliorer)
+            percent = file_transfer.file_receive_context['received_size'] / file_transfer.file_receive_context['file_size'] * 100
+            print(f"> [INFO] Receiving file... {percent:.1f}%", end='\r')
+            if done:
+                file_transfer.reset_file_receive_context()
+                print(f"\n> [INFO] File received successfully and saved to received_files/")
+            self._display_prompt()
+            return
+
         # Gestion de la déconnexion du pair
         if message.strip() == "__DISCONNECT__":
             print(Fore.LIGHTYELLOW_EX + "[INFO] The peer has disconnected." + Style.RESET_ALL)
@@ -88,45 +123,6 @@ class ConsoleUI:
             self._display_prompt()
             return
 
-        # File transfer protocol handling
-        if self._pending_file and self._pending_file.get('status') == 'waiting':
-            # Handle peer response to file request
-            if message.startswith("__FILE_ACCEPT__"):
-                print(Fore.LIGHTGREEN_EX + f"[INFO] Peer accepted file transfer. Sending file..." + Style.RESET_ALL)
-                self._pending_file['status'] = 'sending'
-                self.connection.send_file_data(self._pending_file['file_path'], 
-                                            callback=lambda p: print(Fore.LIGHTCYAN_EX + f"[INFO] Sending progress: {p*100:.1f}%" + Style.RESET_ALL, end='\r'))
-                print(Fore.LIGHTGREEN_EX + f"[INFO] File sent successfully!" + Style.RESET_ALL)
-                del self._pending_file
-                return
-            elif message.startswith("__FILE_DECLINE__"):
-                print(Fore.LIGHTRED_EX + f"[INFO] Peer declined the file transfer." + Style.RESET_ALL)
-                del self._pending_file
-                return
-                
-        # Handle incoming file request
-        if message.startswith("__FILE_REQUEST__"):
-            req = ast.literal_eval(message[len("__FILE_REQUEST__"):])
-            file_name = req['file_name']
-            file_size = req['file_size']
-            print(Fore.LIGHTYELLOW_EX + f"[INFO] Peer wants to send you a file: {file_name} ({file_size} bytes)" + Style.RESET_ALL)
-            resp = input(Fore.LIGHTYELLOW_EX + "Do you want to accept the file? (y/n): " + Style.RESET_ALL).strip().lower()
-            if resp == 'y':
-                print(Fore.LIGHTGREEN_EX + f"[INFO] You accepted the file. Receiving..." + Style.RESET_ALL)
-                self.connection.send_message("__FILE_ACCEPT__")
-                # Receive file
-                path = self.connection.receive_file(file_name, file_size, save_dir="received_files", 
-                                                 callback=lambda p: print(Fore.LIGHTCYAN_EX + f"[INFO] Receiving progress: {p*100:.1f}%" + Style.RESET_ALL, end='\r'))
-                print(Fore.LIGHTGREEN_EX + f"\n[INFO] File received and saved to: {path}" + Style.RESET_ALL)
-            else:
-                print(Fore.LIGHTRED_EX + f"[INFO] You declined the file." + Style.RESET_ALL)
-                self.connection.send_message("__FILE_DECLINE__")
-            return
-            
-        if message.startswith("__FILE_END__"):
-            print(Fore.LIGHTGREEN_EX + f"[INFO] File transfer completed." + Style.RESET_ALL)
-            return
-            
         # Handle multi-line received messages
         if '\n' in message:
             print("\n\r")
@@ -360,6 +356,12 @@ class ConsoleUI:
                 self.display_help()
             elif cmd == '/exit':
                 handle_exit_command(self)
+            elif cmd == '/send_file':
+                handle_send_file_command(self, parts)
+            elif cmd == '/__file_accept__':
+                handle_file_accept_command(self, parts)
+            elif cmd == '/__file_decline__':
+                handle_file_decline_command(self, parts)
             else:
                 print(f"Unknown command: {cmd}")
                 print("Type /help for available commands.")
