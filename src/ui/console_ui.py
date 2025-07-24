@@ -123,7 +123,6 @@ class ConsoleUI:
 
         # Handle file transfer decline from peer
         if "__FILE_TRANSFER_DECLINED__" in message:
-            from src.core import file_transfer
             file_transfer.reset_all_file_transfer_state()
             print(Fore.LIGHTRED_EX + "> [INFO] File transfer was declined by the peer." + Style.RESET_ALL)
             self._display_prompt()
