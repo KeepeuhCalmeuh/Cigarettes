@@ -54,18 +54,25 @@ def handle_file_transfer_request(message: str):
     Détecte et traite un message de demande de transfert côté récepteur.
     """
     global FILE_TRANSFER_BOOL, file_receive_context
-    parts = message.strip().split()
-    if len(parts) >= 3 and parts[0] == "__FILE_TRANSFER__":
-        file_name = parts[1]
-        file_size = int(parts[2])
-        file_receive_context.update({
-            'file_name': file_name,
-            'file_size': file_size,
-            'received_size': 0,
-            'file_obj': None
-        })
-        FILE_TRANSFER_BOOL = True
-        return f"[INFO] transfer file {file_name} {file_size}, accept ? (/__FILE_ACCEPT__ or /__FILE_DECLINE__)"
+    # Recherche du token __FILE_TRANSFER__ n'importe où dans le message
+    if "__FILE_TRANSFER__" in message:
+        # On récupère la partie après le token
+        idx = message.index("__FILE_TRANSFER__")
+        file_info = message[idx + len("__FILE_TRANSFER__"):].strip().split()
+        if len(file_info) >= 2:
+            file_name = file_info[0]
+            try:
+                file_size = int(file_info[1])
+            except ValueError:
+                return None
+            file_receive_context.update({
+                'file_name': file_name,
+                'file_size': file_size,
+                'received_size': 0,
+                'file_obj': None
+            })
+            FILE_TRANSFER_BOOL = True
+            return f"[INFO] transfer file {file_name} {file_size}, accept ? (/__FILE_ACCEPT__ or /__FILE_DECLINE__)"
     return None
 
 def accept_file_transfer():

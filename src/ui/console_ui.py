@@ -91,7 +91,7 @@ class ConsoleUI:
             return
 
         # Détection acceptation transfert côté émetteur
-        if file_transfer.FILE_TRANSFER_PROCEDURE and message.startswith("__FILE_TRANSFER_ACCEPTED__"):
+        if file_transfer.FILE_TRANSFER_PROCEDURE and "__FILE_TRANSFER_ACCEPTED__" in message:
             print("> [INFO] File transfer accepted by peer. Sending file...")
             chunks = file_transfer.handle_file_transfer_accepted()
             for idx, chunk in enumerate(chunks):
