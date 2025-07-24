@@ -85,6 +85,7 @@ class ConsoleUI:
         
         # Detection of file transfer request message
         info_msg = file_transfer.handle_file_transfer_request(message)
+        self.connection.activate_file_receiving_mode()
         if info_msg:
             print(f"> {Fore.LIGHTYELLOW_EX + info_msg + Style.RESET_ALL}")
             self._display_prompt()
@@ -320,6 +321,11 @@ class ConsoleUI:
         Args:
             message: Message to send
         """
+        # Block sending messages if a file transfer is in progress (sender side)
+        if file_transfer.FILE_TRANSFER_PROCEDURE:
+            print(Fore.LIGHTYELLOW_EX + "> [INFO] You cannot send messages while a file transfer is in progress. Please wait until the transfer is complete or declined." + Style.RESET_ALL)
+            self._display_prompt()
+            return
         if not self.connection or not self.connection.connected:
             print("Not connected to any peer.")
             self._display_prompt()
