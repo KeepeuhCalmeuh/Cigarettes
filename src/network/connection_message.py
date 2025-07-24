@@ -19,15 +19,15 @@ class MessageMixin:
         Thread for receiving and processing messages.
         """
         while self.connected and not self._stop_flag.is_set():
-            print("ON EST DANS LE _RECEIVE_MESSAGES et le _receiving_file est 3", self._receiving_file)
+            # print("ON EST DANS LE _RECEIVE_MESSAGES et le _receiving_file est 3", self._receiving_file)
             try:
-                print("ON EST PAS ENCORE DANS LE MODE RECEPTION DE FICHIER et le _receiving_file est 4", self._receiving_file)
+                # print("ON EST PAS ENCORE DANS LE MODE RECEPTION DE FICHIER et le _receiving_file est 4", self._receiving_file)
                 if not self.peer_socket:
                     break
                 # Binary file receiving mode
                 
                 if self._receiving_file:
-                    print("ON EST DANS LE MODE RECEPTION DE FICHIER")
+                    # print("ON EST DANS LE MODE RECEPTION DE FICHIER")
                     # If the protocol was reset (declined or completed), exit file receiving mode
                     if not file_transfer.FILE_TRANSFER_BOOL:
                         self._receiving_file = False
@@ -178,7 +178,7 @@ class MessageMixin:
         """
         if message.startswith("__FILE_ACCEPT__"):
             self.activate_file_receiving_mode()
-            print("ON MET LE MODE RECEPTION DE FICHIER A TRUE DANS LE FICHIER CONNECTION_MESSAGE.PY et le _receiving_file est 1", self._receiving_file)
+            # print("ON MET LE MODE RECEPTION DE FICHIER A TRUE DANS LE FICHIER CONNECTION_MESSAGE.PY et le _receiving_file est 1", self._receiving_file)
             return True
         return False
 
@@ -189,7 +189,7 @@ class MessageMixin:
         """
         if self._file_receive_info and self._file_receive_info['file_obj']:
             self._receiving_file = True
-            print("ON MET LE MODE RECEPTION DE FICHIER A TRUE DANS LE FICHIER CONNECTION_MESSAGE.PY")
+            # print("ON MET LE MODE RECEPTION DE FICHIER A TRUE DANS LE FICHIER CONNECTION_MESSAGE.PY")
 
     def _get_peer_nickname(self) -> str:
         """

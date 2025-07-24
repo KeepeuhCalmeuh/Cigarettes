@@ -159,7 +159,7 @@ def handle_file_accept_command(console_ui, parts):
     console_ui.connection.send_message(msg)
     # Activate file receiving mode immediately
     console_ui.connection.activate_file_receiving_mode()
-    print("ON MET LE MODE RECEPTION DE FICHIER A TRUE DANS LE FICHIER CONNECTION_MESSAGE.PY et le _receiving_file est 2", console_ui.connection._receiving_file)
+    # print("ON MET LE MODE RECEPTION DE FICHIER A TRUE DANS LE FICHIER CONNECTION_MESSAGE.PY et le _receiving_file est 2", console_ui.connection._receiving_file)
     print(Fore.LIGHTYELLOW_EX + "> [INFO] File transfer accepted. Waiting for file..." + Style.RESET_ALL)
 
 

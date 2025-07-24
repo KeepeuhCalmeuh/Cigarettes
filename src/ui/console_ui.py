@@ -103,8 +103,11 @@ class ConsoleUI:
             if file_path:
                 self.connection.send_file_data(file_path, callback=print_progress_bar)
                 print(Fore.LIGHTGREEN_EX + "\n> [INFO] File sent successfully!" + Style.RESET_ALL)
+                # Allow sending messages again
+                file_transfer.FILE_TRANSFER_PROCEDURE = False
             else:
                 print(Fore.LIGHTRED_EX + "> [ERROR] No file to send." + Style.RESET_ALL)
+                file_transfer.FILE_TRANSFER_PROCEDURE = False
             self._display_prompt()
             return
 
