@@ -7,6 +7,11 @@ class MessageMixin:
     """
     Mixin for message and ping management in P2PConnection.
     """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._receiving_file = False
+        self._file_receive_info = None  # dict: name, size, received, file_obj
+
     def _receive_messages(self) -> None:
         """
         Thread for receiving and processing messages.
@@ -15,12 +20,64 @@ class MessageMixin:
             try:
                 if not self.peer_socket:
                     break
+                # Mode réception fichier binaire
+                if self._receiving_file:
+                    encrypted_chunk = self._receive_raw()
+                    if not encrypted_chunk:
+                        self.message_callback("> [ERROR] Connection lost during file transfer.")
+                        self._receiving_file = False
+                        if self._file_receive_info and self._file_receive_info['file_obj']:
+                            self._file_receive_info['file_obj'].close()
+                        break
+                    chunk = self.crypto.decrypt_bytes(encrypted_chunk)
+                    self._file_receive_info['file_obj'].write(chunk)
+                    self._file_receive_info['received'] += len(chunk)
+                    # Affichage barre de progression
+                    percent = self._file_receive_info['received'] / self._file_receive_info['size']
+                    bar_len = 30
+                    filled_len = int(bar_len * percent)
+                    bar = '#' * filled_len + '-' * (bar_len - filled_len)
+                    print(Fore.LIGHTYELLOW_EX + f"\r> [RECEIVING] |{bar}| {percent*100:5.1f}%" + Style.RESET_ALL, end='')
+                    if self._file_receive_info['received'] >= self._file_receive_info['size']:
+                        self._file_receive_info['file_obj'].close()
+                        print(Fore.LIGHTGREEN_EX + f"\n> [INFO] File received successfully and saved to received_files/{self._file_receive_info['name']}" + Style.RESET_ALL)
+                        import src.core.file_transfer as file_transfer
+                        file_transfer.reset_all_file_transfer_state()
+                        self._receiving_file = False
+                        self._file_receive_info = None
+                    continue
+                # Mode normal : réception message texte
                 encrypted_data = self._receive_raw()
                 if not encrypted_data:
                     self.message_callback(Fore.LIGHTYELLOW_EX + "[INFO] The peer has closed the connection or disconnected." + Style.RESET_ALL)
                     self.stop()
                     break
                 message = self.crypto.decrypt_message(encrypted_data)
+                # Détection début transfert fichier
+                if "__FILE_TRANSFER__" in message:
+                    # Extraction nom et taille
+                    idx = message.index("__FILE_TRANSFER__")
+                    file_info = message[idx + len("__FILE_TRANSFER__"):].strip().split()
+                    if len(file_info) >= 2:
+                        file_name = file_info[0]
+                        try:
+                            file_size = int(file_info[1])
+                        except ValueError:
+                            self.message_callback("> [ERROR] Invalid file transfer request.")
+                            continue
+                        import os
+                        os.makedirs('received_files', exist_ok=True)
+                        file_path = os.path.join('received_files', file_name)
+                        file_obj = open(file_path, 'wb')
+                        self._receiving_file = True
+                        self._file_receive_info = {
+                            'name': file_name,
+                            'size': file_size,
+                            'received': 0,
+                            'file_obj': file_obj
+                        }
+                        self.message_callback(message)
+                        continue
                 if self._handle_ping_pong(message):
                     continue
                 if self._handle_file_transfer(message):

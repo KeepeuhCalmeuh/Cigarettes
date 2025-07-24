@@ -3,6 +3,7 @@ from datetime import datetime
 import os
 from src.core import file_transfer
 
+# All comments and docstrings below are translated to English.
 # command handlers
 
 def handle_connect_command(console_ui, parts):
@@ -143,26 +144,26 @@ def handle_send_file_command(console_ui, parts):
     file_path = parts[1]
     msg = file_transfer.initiate_file_transfer(file_path)
     if not msg:
-        print("[ERROR] File not found or cannot be read.")
+        print(Fore.LIGHTRED_EX + "[ERROR] File not found or cannot be read." + Style.RESET_ALL)
         return
-    print(f"> [INFO] Preparing to send file: {file_path}")
+    print(Fore.LIGHTYELLOW_EX + f"> [INFO] Preparing to send file: {file_path}" + Style.RESET_ALL)
     console_ui.connection.send_message(msg)
-    print("> [INFO] File transfer request sent. Waiting for acceptance...")
+    print(Fore.LIGHTYELLOW_EX + "> [INFO] File transfer request sent. Waiting for acceptance..." + Style.RESET_ALL)
 
 
 def handle_file_accept_command(console_ui, parts):
     if not file_transfer.FILE_TRANSFER_BOOL:
-        print("> [INFO] No file transfer to accept.")
+        print(Fore.LIGHTRED_EX + "> [INFO] No file transfer to accept." + Style.RESET_ALL)
         return
     msg = file_transfer.accept_file_transfer()
     console_ui.connection.send_message(msg)
-    print("> [INFO] File transfer accepted. Waiting for file...")
+    print(Fore.LIGHTYELLOW_EX + "> [INFO] File transfer accepted. Waiting for file..." + Style.RESET_ALL)
 
 
 def handle_file_decline_command(console_ui, parts):
     if not file_transfer.FILE_TRANSFER_BOOL:
-        print("> [INFO] No file transfer to decline.")
+        print(Fore.LIGHTRED_EX + "> [INFO] No file transfer to decline." + Style.RESET_ALL)
         return
     print(file_transfer.decline_file_transfer())
     console_ui.connection.send_message("__FILE_TRANSFER_DECLINED__")
-    print("> [INFO] File transfer declined.") 
+    print(Fore.LIGHTRED_EX + "> [INFO] File transfer declined." + Style.RESET_ALL) 

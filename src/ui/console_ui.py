@@ -83,49 +83,49 @@ class ConsoleUI:
         """
         now = datetime.now().strftime("%H:%M:%S")
         
-        # Détection message de demande de transfert de fichier
+        # Detection of file transfer request message
         info_msg = file_transfer.handle_file_transfer_request(message)
         if info_msg:
             print(f"> {info_msg}")
             self._display_prompt()
             return
 
-        # Détection acceptation transfert côté émetteur
+        # Detection of file transfer acceptance from sender
         if file_transfer.FILE_TRANSFER_PROCEDURE and "__FILE_TRANSFER_ACCEPTED__" in message:
-            print("> [INFO] File transfer accepted by peer. Sending file...")
+            print(Fore.LIGHTYELLOW_EX + "> [INFO] File transfer accepted by peer. Sending file..." + Style.RESET_ALL)
             file_path = file_transfer.file_transfer_context.get('file_path')
             def print_progress_bar(p):
                 bar_len = 30
                 filled_len = int(bar_len * p)
                 bar = '#' * filled_len + '-' * (bar_len - filled_len)
-                print(f"\r> [SENDING] |{bar}| {p*100:5.1f}%", end='')
+                print(Fore.LIGHTYELLOW_EX + f"\r> [SENDING] |{bar}| {p*100:5.1f}%" + Style.RESET_ALL, end='')
             if file_path:
                 self.connection.send_file_data(file_path, callback=print_progress_bar)
-                print("\n> [INFO] File sent successfully!")
+                print(Fore.LIGHTGREEN_EX + "\n> [INFO] File sent successfully!" + Style.RESET_ALL)
             else:
-                print("> [ERROR] No file to send.")
+                print(Fore.LIGHTRED_EX + "> [ERROR] No file to send." + Style.RESET_ALL)
             self._display_prompt()
             return
 
-        # Réception de chunk de fichier (à adapter selon protocole réel)
+        # Reception of file chunk (to be adapted to actual protocol)
         if file_transfer.FILE_TRANSFER_BOOL and isinstance(message, bytes):
             done = file_transfer.receive_file_chunk(message)
             percent = file_transfer.file_receive_context['received_size'] / file_transfer.file_receive_context['file_size']
             bar_len = 30
             filled_len = int(bar_len * percent)
             bar = '#' * filled_len + '-' * (bar_len - filled_len)
-            print(f"\r> [RECEIVING] |{bar}| {percent*100:5.1f}%", end='')
+            print(Fore.LIGHTYELLOW_EX + f"\r> [RECEIVING] |{bar}| {percent*100:5.1f}%" + Style.RESET_ALL, end='')
             if done:
                 file_transfer.reset_file_receive_context()
-                print(f"\n> [INFO] File received successfully and saved to received_files/")
+                print(Fore.LIGHTGREEN_EX + f"\n> [INFO] File received successfully and saved to received_files/" + Style.RESET_ALL)
             self._display_prompt()
             return
 
-        # Gestion de la déconnexion du pair
+        # Disconnection handling from peer
         if message.strip() == "__DISCONNECT__":
             print(Fore.LIGHTYELLOW_EX + "[INFO] The peer has disconnected." + Style.RESET_ALL)
             if self.connection:
-                self.connection.stop()  # Ne ferme que la connexion pair-à-pair
+                self.connection.stop()  # Close only the peer-to-peer connection
             print("Waiting for new connection...")
             self.display_help()
             self._display_prompt()
