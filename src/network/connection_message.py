@@ -27,35 +27,37 @@ class MessageMixin:
                 # Binary file receiving mode
                 
                 if self._receiving_file:
-                    # print("ON EST DANS LE MODE RECEPTION DE FICHIER")
                     # If the protocol was reset (declined or completed), exit file receiving mode
                     if not file_transfer.FILE_TRANSFER_BOOL:
                         self._receiving_file = False
                         self._file_receive_info = None
-                    else:
-                        encrypted_chunk = self._receive_raw()
-                        if not encrypted_chunk:
-                            self.message_callback("> [ERROR] Connection lost during file transfer.")
-                            self._receiving_file = False
-                            if self._file_receive_info and self._file_receive_info['file_obj']:
-                                self._file_receive_info['file_obj'].close()
-                            break
-                        chunk = self.crypto.decrypt_bytes(encrypted_chunk)
-                        self._file_receive_info['file_obj'].write(chunk)
-                        self._file_receive_info['received'] += len(chunk)
-                        # Progress bar display
-                        percent = self._file_receive_info['received'] / self._file_receive_info['size']
-                        bar_len = 30
-                        filled_len = int(bar_len * percent)
-                        bar = '#' * filled_len + '-' * (bar_len - filled_len)
-                        print(Fore.LIGHTYELLOW_EX + f"\r> [RECEIVING] |{bar}| {percent*100:5.1f}%" + Style.RESET_ALL, end='')
-                        if self._file_receive_info['received'] >= self._file_receive_info['size']:
+                        continue  # Restart the main loop to handle the next message as normal
+                    # print("ON EST DANS LE MODE RECEPTION DE FICHIER")
+                    encrypted_chunk = self._receive_raw()
+                    if not encrypted_chunk:
+                        self.message_callback("> [ERROR] Connection lost during file transfer.")
+                        self._receiving_file = False
+                        if self._file_receive_info and self._file_receive_info['file_obj']:
                             self._file_receive_info['file_obj'].close()
-                            print(Fore.LIGHTGREEN_EX + f"\n> [INFO] File received successfully and saved to received_files/{self._file_receive_info['name']}" + Style.RESET_ALL)
-                            file_transfer.reset_all_file_transfer_state()
-                            self._receiving_file = False
-                            self._file_receive_info = None
-                        continue
+                        break
+                    chunk = self.crypto.decrypt_bytes(encrypted_chunk)
+                    self._file_receive_info['file_obj'].write(chunk)
+                    self._file_receive_info['received'] += len(chunk)
+                    if not self._receiving_file:
+                        break
+                    # Progress bar display
+                    percent = self._file_receive_info['received'] / self._file_receive_info['size']
+                    bar_len = 30
+                    filled_len = int(bar_len * percent)
+                    bar = '#' * filled_len + '-' * (bar_len - filled_len)
+                    print(Fore.LIGHTYELLOW_EX + f"\r> [RECEIVING] |{bar}| {percent*100:5.1f}%" + Style.RESET_ALL, end='')
+                    if self._file_receive_info['received'] >= self._file_receive_info['size']:
+                        self._file_receive_info['file_obj'].close()
+                        print(Fore.LIGHTGREEN_EX + f"\n> [INFO] File received successfully and saved to received_files/{self._file_receive_info['name']}" + Style.RESET_ALL)
+                        file_transfer.reset_all_file_transfer_state()
+                        self._receiving_file = False
+                        self._file_receive_info = None
+                    continue
                 else:
                     encrypted_data = self._receive_raw()
                     if not encrypted_data:
