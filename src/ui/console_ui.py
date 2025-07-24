@@ -93,20 +93,28 @@ class ConsoleUI:
         # Détection acceptation transfert côté émetteur
         if file_transfer.FILE_TRANSFER_PROCEDURE and "__FILE_TRANSFER_ACCEPTED__" in message:
             print("> [INFO] File transfer accepted by peer. Sending file...")
-            chunks = file_transfer.handle_file_transfer_accepted()
-            for idx, chunk in enumerate(chunks):
-                self.connection.send_message(chunk)
-                print(f"> [INFO] Sending chunk {idx+1}/{len(chunks)}", end='\r')
-            print("> [INFO] File sent successfully!")
+            file_path = file_transfer.file_transfer_context.get('file_path')
+            def print_progress_bar(p):
+                bar_len = 30
+                filled_len = int(bar_len * p)
+                bar = '#' * filled_len + '-' * (bar_len - filled_len)
+                print(f"\r> [SENDING] |{bar}| {p*100:5.1f}%", end='')
+            if file_path:
+                self.connection.send_file_data(file_path, callback=print_progress_bar)
+                print("\n> [INFO] File sent successfully!")
+            else:
+                print("> [ERROR] No file to send.")
             self._display_prompt()
             return
 
         # Réception de chunk de fichier (à adapter selon protocole réel)
         if file_transfer.FILE_TRANSFER_BOOL and isinstance(message, bytes):
             done = file_transfer.receive_file_chunk(message)
-            # Affichage barre de progression ASCII (à améliorer)
-            percent = file_transfer.file_receive_context['received_size'] / file_transfer.file_receive_context['file_size'] * 100
-            print(f"> [INFO] Receiving file... {percent:.1f}%", end='\r')
+            percent = file_transfer.file_receive_context['received_size'] / file_transfer.file_receive_context['file_size']
+            bar_len = 30
+            filled_len = int(bar_len * percent)
+            bar = '#' * filled_len + '-' * (bar_len - filled_len)
+            print(f"\r> [RECEIVING] |{bar}| {percent*100:5.1f}%", end='')
             if done:
                 file_transfer.reset_file_receive_context()
                 print(f"\n> [INFO] File received successfully and saved to received_files/")
