@@ -166,4 +166,6 @@ def handle_file_decline_command(console_ui, parts):
         return
     print(file_transfer.decline_file_transfer())
     console_ui.connection.send_message("__FILE_TRANSFER_DECLINED__")
+    # Reset file transfer state on both sender and receiver sides
+    file_transfer.reset_all_file_transfer_state()
     print(Fore.LIGHTRED_EX + "> [INFO] File transfer declined." + Style.RESET_ALL) 

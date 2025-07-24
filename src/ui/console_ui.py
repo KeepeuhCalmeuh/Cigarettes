@@ -86,7 +86,7 @@ class ConsoleUI:
         # Detection of file transfer request message
         info_msg = file_transfer.handle_file_transfer_request(message)
         if info_msg:
-            print(f"> {info_msg}")
+            print(f"> {Fore.LIGHTYELLOW_EX + info_msg + Style.RESET_ALL}")
             self._display_prompt()
             return
 
@@ -118,6 +118,14 @@ class ConsoleUI:
             if done:
                 file_transfer.reset_file_receive_context()
                 print(Fore.LIGHTGREEN_EX + f"\n> [INFO] File received successfully and saved to received_files/" + Style.RESET_ALL)
+            self._display_prompt()
+            return
+
+        # Handle file transfer decline from peer
+        if "__FILE_TRANSFER_DECLINED__" in message:
+            from src.core import file_transfer
+            file_transfer.reset_all_file_transfer_state()
+            print(Fore.LIGHTRED_EX + "> [INFO] File transfer was declined by the peer." + Style.RESET_ALL)
             self._display_prompt()
             return
 
