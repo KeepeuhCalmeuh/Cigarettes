@@ -76,6 +76,12 @@ class ConsoleUI:
         print("\nTo send a message, simply type it and press Enter.")
         print("Waiting for connection on the specified port...\n")
 
+    def print_progress_bar(self, p):
+                bar_len = 30
+                filled_len = int(bar_len * p)
+                bar = '#' * filled_len + '-' * (bar_len - filled_len)
+                print(Fore.LIGHTYELLOW_EX + f"\r> [SENDING] |{bar}| {p*100:5.1f}%" + Style.RESET_ALL, end='')
+
     def handle_message(self, message: str) -> None:
         """
         Callback to display received messages with timestamp and save in history.
@@ -95,13 +101,8 @@ class ConsoleUI:
         if file_transfer.FILE_TRANSFER_PROCEDURE and "__FILE_TRANSFER_ACCEPTED__" in message:
             print(Fore.LIGHTYELLOW_EX + "> [INFO] File transfer accepted by peer. Sending file..." + Style.RESET_ALL)
             file_path = file_transfer.file_transfer_context.get('file_path')
-            def print_progress_bar(p):
-                bar_len = 30
-                filled_len = int(bar_len * p)
-                bar = '#' * filled_len + '-' * (bar_len - filled_len)
-                print(Fore.LIGHTYELLOW_EX + f"\r> [SENDING] |{bar}| {p*100:5.1f}%" + Style.RESET_ALL, end='')
             if file_path:
-                self.connection.send_file_data(file_path, callback=print_progress_bar)
+                self.connection.send_file_data(file_path, callback=self.print_progress_bar)
                 print(Fore.LIGHTGREEN_EX + "\n> [INFO] File sent successfully!" + Style.RESET_ALL)
                 # Allow sending messages again
                 file_transfer.FILE_TRANSFER_PROCEDURE = False
@@ -129,7 +130,8 @@ class ConsoleUI:
         if "__FILE_TRANSFER_DECLINED__" in message:
             file_transfer.reset_all_file_transfer_state()
             print(Fore.LIGHTRED_EX + "> [INFO] File transfer was declined by the peer." + Style.RESET_ALL)
-            print(Fore.LIGHTYELLOW_EX + "[BUG TO FIX] [The next message received by the peer will be bugged and not displayed to the peer, the second message will be displayed as normal to the peer]" + Style.RESET_ALL)
+            self.connection.send_message("MESSAGE TO RESET THE PEER LOOP IN THE MESSAGE MODE [NOT DISPLAYED TO THE PEER]")
+            # print(Fore.LIGHTYELLOW_EX + "[BUG TO FIX] [The next message received by the peer will be bugged and not displayed to the peer, the second message will be displayed as normal to the peer]" + Style.RESET_ALL)
             self._display_prompt()
             return
 
