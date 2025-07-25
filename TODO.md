@@ -17,7 +17,6 @@ Tracking planned improvements to the Cigarettes app.
 
 ## 💬 Messaging Features
 
-- [ ] Encrypted file transfer
 - [ ] Message compression (e.g., gzip or zlib)
 - [ ] Add Group Features
 
@@ -26,7 +25,6 @@ Tracking planned improvements to the Cigarettes app.
 ## 🌐 Connectivity
 
 - [ ] Automatic peer discovery on the local network (mDNS or UDP broadcast)
-- [ ] Connection via Tor or SOCKS5 proxy
 - [ ] Open to internet with DHT
 
 ---
@@ -37,6 +35,7 @@ Tracking planned improvements to the Cigarettes app.
 - [ ] Display session stats: number of messages, duration, volume exchanged
 - [ ] Add a more readable prompt with color/nickname
 - [ ] Verbose/debug mode with detailed logs
+- [ ] Regenerate a key and an onion adress with a command.
 
 ---
 

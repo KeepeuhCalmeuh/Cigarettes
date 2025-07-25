@@ -3,6 +3,7 @@ from datetime import datetime
 import json
 import os
 from colorama import Fore, Style
+import time
 
 class HandshakeMixin:
     """
@@ -100,7 +101,6 @@ class HandshakeMixin:
         Monitor connection for renewal conditions.
         """
         while self.connected and not self._stop_flag.is_set():
-            import time
             time.sleep(60)
             if self._should_renew_connection():
                 self._trigger_reconnection()
@@ -130,7 +130,6 @@ class HandshakeMixin:
             old_is_server = self._is_server_mode
             self._stop_peer_connection()
             if old_is_server:
-                import time
                 time.sleep(2)
             else:
                 if old_peer_details:

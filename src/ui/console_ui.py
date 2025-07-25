@@ -63,6 +63,9 @@ class ConsoleUI:
         print("  /status                                    - Display connection status and peer information")
         print("  /stop                                      - Disconnect from the peer without exiting the application")
         print("  /save                                      - Save the discussion history to a .txt file")
+        print("  /send_file <file_path>                    - Send a file to the connected peer")
+        print("  /file_accept                               - Accept the file transfer")
+        print("  /file_decline                              - Decline the file transfer")
         print("  /ping                                      - Ping the connected peer and display response time")
         print("  /info                                      - Displays your fingerprint, .onion address and listening port")
         print("  /rename <fingerprint> <new_name>           - Rename a peer in known hosts")
@@ -385,9 +388,9 @@ class ConsoleUI:
                 handle_exit_command(self)
             elif cmd == '/send_file':
                 handle_send_file_command(self, parts)
-            elif cmd == '/__file_accept__':
+            elif cmd == '/file_accept':
                 handle_file_accept_command(self, parts)
-            elif cmd == '/__file_decline__':
+            elif cmd == '/file_decline':
                 handle_file_decline_command(self, parts)
             else:
                 print(f"Unknown command: {cmd}")

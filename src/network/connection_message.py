@@ -4,6 +4,7 @@ from re import A
 import time
 from colorama import Fore, Style
 import src.core.file_transfer as file_transfer
+import os
 
 class MessageMixin:
     """
@@ -81,7 +82,6 @@ class MessageMixin:
                             except ValueError:
                                 self.message_callback("> [ERROR] Invalid file transfer request.")
                                 continue
-                            import os
                             os.makedirs('received_files', exist_ok=True)
                             file_path = os.path.join('received_files', file_name)
                             file_obj = open(file_path, 'wb')
