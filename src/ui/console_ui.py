@@ -163,7 +163,6 @@ class ConsoleUI:
         else:
             line = f"{message}"
             print(f"\n{line}")
-            print("test message received")
             self.history.append(line)
         
         self._display_prompt()
