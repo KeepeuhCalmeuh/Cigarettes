@@ -94,6 +94,7 @@ class TorManager:
                 return path
 
         # List contents of TOR_DIR for debugging
+        print("Failed to find TOR binary.\nDebug Info :")
         print(f"Contents of {self.TOR_DIR}:")
         if os.path.exists(self.TOR_DIR):
             for root, dirs, files in os.walk(self.TOR_DIR):
@@ -197,8 +198,6 @@ class TorManager:
         cmd = [tor_path]
         if extra_args:
             cmd.extend(extra_args)
-
-        #print(f"Launching Tor with command: {' '.join(cmd)}")
         
         try:
             process = subprocess.Popen(
@@ -207,12 +206,25 @@ class TorManager:
                 stderr=subprocess.PIPE,
                 text=True
             )
-            # Ajoute ce bloc pour lire les erreurs si Tor crash immédiatement
             time.sleep(2)
-            if process.poll() is not None:  # Tor a quitté
+            if process.poll() is not None: 
                 out, err = process.communicate()
                 print(f'Tor stdout: {out}')
                 print(f'Tor stderr: {err}')
+                if "error while loading shared libraries" in err:
+                    missing_lib = None
+                    for line in err.splitlines():
+                        if "error while loading shared libraries" in line:
+                            parts = line.split(":")
+                            if len(parts) > 1:
+                                missing_lib = parts[1].strip().split()[0]
+                    if missing_lib:
+                        print("\n[!] missing library:", missing_lib)
+                        if sys.platform.startswith("linux"):
+                            print(f"To fix, run:\n  sudo apt update && sudo apt install {missing_lib.split('.')[0]}")
+                        else:
+                            print("Please install the missing library via your package manager.")
+                        raise RuntimeError(f"Tor cannot start because the following library is missing: {missing_lib}")
             return process
         except Exception as e:
             raise RuntimeError(f"Failed to launch Tor: {e}")
@@ -326,4 +338,4 @@ def launch_tor_with_hidden_service(port: int, base_dir: Optional[str] = None) ->
     Returns:
         Tuple of (Tor process, onion address)
     """
-    return tor_manager.launch_tor_with_hidden_service(port, base_dir) 
+    return tor_manager.launch_tor_with_hidden_service(port, base_dir)

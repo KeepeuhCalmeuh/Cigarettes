@@ -71,6 +71,7 @@ For example: `/connect yq5jjvr7drkjrelzhut7kgclfuro65jjlivyzfmxiq2kyv5lickrl4qd.
 - `/status`: Display connexion informations.
 - `/stop`: Disconnects the connection with the peer without exiting the application
 - `/save`: Saves the chat history to a text file (`history` folder)
+- `/send_file <file_path>`: Send a file to the connected peer
 - `/ping`: Display the ping between you and your peer.
 - `/fingerprint`: Displays your public key fingerprint
 - `/rename <fingerprint> <new_name>`: Rename a peer in known hosts
