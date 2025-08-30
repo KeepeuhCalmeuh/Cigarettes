@@ -160,6 +160,7 @@ class ConsoleUI:
         else:
             line = f"{message}"
             print(f"\n{line}")
+            print("test message received")
             self.history.append(line)
         
         self._display_prompt()
@@ -340,6 +341,7 @@ class ConsoleUI:
         try:
             print(f"[ You | {datetime.now().strftime('%H:%M:%S')} ] {message}")
             self.connection.send_message(message)
+            self.history.append(f"[ You | {datetime.now().strftime('%H:%M:%S')} ] {message}")
         except Exception as e:
             print(f"Error sending message: {str(e)}")
         
