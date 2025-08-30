@@ -10,6 +10,7 @@ plan_integration_tor.txt
 tor/
 to_send/
 backup_original/
+received_files/
 
 # Unit tests
 unit_tests/tests_commands.txt
