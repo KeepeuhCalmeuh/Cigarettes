@@ -3,8 +3,6 @@ from datetime import datetime
 import os
 from src.core import file_transfer
 
-# All comments and docstrings below are translated to English.
-# command handlers
 
 def handle_connect_command(console_ui, parts):
     if len(parts) < 3:

@@ -94,6 +94,7 @@ class TorManager:
                 return path
 
         # List contents of TOR_DIR for debugging
+        print("Failed to find TOR binary.\nDebug Info :")
         print(f"Contents of {self.TOR_DIR}:")
         if os.path.exists(self.TOR_DIR):
             for root, dirs, files in os.walk(self.TOR_DIR):
@@ -197,8 +198,6 @@ class TorManager:
         cmd = [tor_path]
         if extra_args:
             cmd.extend(extra_args)
-
-        #print(f"Launching Tor with command: {' '.join(cmd)}")
         
         try:
             process = subprocess.Popen(
@@ -207,9 +206,8 @@ class TorManager:
                 stderr=subprocess.PIPE,
                 text=True
             )
-            # Ajoute ce bloc pour lire les erreurs si Tor crash immédiatement
             time.sleep(2)
-            if process.poll() is not None:  # Tor a quitté
+            if process.poll() is not None: 
                 out, err = process.communicate()
                 print(f'Tor stdout: {out}')
                 print(f'Tor stderr: {err}')
