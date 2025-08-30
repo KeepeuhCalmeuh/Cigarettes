@@ -1,5 +1,6 @@
 # File transfer management mixin for P2PConnection
 import os
+import ast
 
 class FileTransferMixin:
     """
@@ -80,7 +81,6 @@ class FileTransferMixin:
             True if handled as file transfer protocol, False otherwise.
         """
         if message.startswith("__FILE_REQUEST__"):
-            import ast
             req = ast.literal_eval(message[len("__FILE_REQUEST__"):])
             file_name = req['file_name']
             file_size = req['file_size']
