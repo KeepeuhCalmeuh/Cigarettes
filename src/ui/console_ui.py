@@ -7,10 +7,7 @@ import threading
 import sys
 from typing import Optional, List
 from datetime import datetime
-import os
 from colorama import Fore, Style
-import time
-import ast
 from src.core import file_transfer
 
 

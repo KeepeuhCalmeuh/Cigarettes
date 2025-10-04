@@ -234,3 +234,33 @@ class KnownHostsManager:
             return False
             
         return True 
+
+    def get_fingerprint_by_nickname(self, nickname: str) -> Optional[str]:
+        """
+        Get the fingerprint associated with a nickname.
+        
+        Args:
+            nickname: The nickname to look up
+            
+        Returns:
+            The fingerprint if found, None otherwise
+        """
+        for fp, nick in self._data.get("nicknames", {}).items():
+            if nick == nickname:
+                return fp
+        return None
+    
+    def get_onion_by_fingerprint(self, fingerprint: str) -> Optional[str]:
+        """
+        Get the onion address associated with a fingerprint.
+        
+        Args:
+            fingerprint: The fingerprint to look up
+            
+        Returns:
+            The onion address if found, None otherwise
+        """
+        for address, fp in self._data.get("hosts", {}).items():
+            if fp == fingerprint and self._is_onion_address(address):
+                return address
+        return None

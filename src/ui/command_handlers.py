@@ -5,14 +5,29 @@ from src.core import file_transfer
 
 
 def handle_connect_command(console_ui, parts):
-    if len(parts) < 3:
+    if len(parts) < 2 or len(parts) > 4:
         print("Usage: /connect <peer_onion_address> <PEER_FINGERPRINT> [port]")
+        print("   OR: /connect <nickname>")
         return
-    onion_address = parts[1]
-    fingerprint = parts[2]
-    port = int(parts[3]) if len(parts) > 3 else 34567
+
+    if len(parts) == 2:
+        nickname = parts[1]
+        fingerprint = console_ui.hosts_manager.get_fingerprint_by_nickname(nickname)
+        if not fingerprint:
+            print(f"No known host with nickname '{nickname}'.")
+            return
+        onion_address = console_ui.hosts_manager.get_onion_by_fingerprint(fingerprint)
+        if not onion_address:
+            print(f"No known onion address for fingerprint '{fingerprint}'.")
+            return
+        port = 34567 
+    elif len(parts) >= 3:
+        onion_address = parts[1]
+        fingerprint = parts[2] 
+        port = int(parts[3]) if len(parts) == 4 else 34567
     if console_ui.connection:
         console_ui.connection.connect_to_onion_peer(onion_address, fingerprint, port)
+        
 
 def handle_status_command(console_ui):
     if not console_ui.connection:
