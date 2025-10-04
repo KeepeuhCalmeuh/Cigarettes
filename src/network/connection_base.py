@@ -60,7 +60,7 @@ class P2PConnection:
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self.socket.bind(('0.0.0.0', self.listen_port))
+            self.socket.bind(('127.0.0.1', self.listen_port))
             self.socket.listen(1)
             self._is_server_mode = True
             self._accept_thread = threading.Thread(target=self._accept_connections, daemon=True)
