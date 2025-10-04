@@ -4,6 +4,7 @@ import json
 import os
 from colorama import Fore, Style
 import time
+from src.core.utility_sound import play_incoming_call_sound
 
 class HandshakeMixin:
     """
@@ -59,6 +60,7 @@ class HandshakeMixin:
                 if not self._verify_tofu_identity(peer_ip, peer_port, "client" if send_public_key_first else "server"):
                     return False
             self.message_callback(Fore.LIGHTGREEN_EX + f"[{datetime.now().strftime('%H:%M:%S')}] Secure connection established" + Style.RESET_ALL)
+            play_incoming_call_sound()
             return True
         except Exception as e:
             self.message_callback(f"Handshake failed: {str(e)}")

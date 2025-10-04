@@ -5,6 +5,7 @@ import time
 from colorama import Fore, Style
 import src.core.file_transfer as file_transfer
 import os
+from src.core.utility_sound import play_message_received_sound
 
 class MessageMixin:
     """
@@ -103,6 +104,8 @@ class MessageMixin:
                         return
                     self._message_count += 1
                     self.message_callback(f"[{self._get_peer_nickname()}  |  {datetime.now().strftime('%H:%M:%S')}] {message}")
+                    #play_message_received_sound()
+
             except Exception as e:
                 if not self._stop_flag.is_set():
                     self.message_callback(f"Error receiving message: {str(e)}")
