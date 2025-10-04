@@ -75,8 +75,9 @@ For example: `/connect yq5jjvr7drkjrelzhut7kgclfuro65jjlivyzfmxiq2kyv5lickrl4qd.
 - `/ping`: Display the ping between you and your peer.
 - `/fingerprint`: Displays your public key fingerprint
 - `/rename <fingerprint> <new_name>`: Rename a peer in known hosts
-- `/addHost <peer_onion_adress> <fingerprint>`: Add a host to known hosts
-- `/listHosts`: List all known hosts
+- `/addHost (or /ad) <peer_onion_adress> <fingerprint>`: Add a host to known hosts
+- `/removehost (or /rmh) <peer_onion_address>`: Remove a peer from the host list.
+- `/listHosts (or /lh)`: List all known hosts
 - `/multiline`: Toggle multi-line message mode (use Shift+Enter for new line, Enter to send)
 - `/help`: Displays command help
 - `/exit`: Exits the application

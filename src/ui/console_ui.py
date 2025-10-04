@@ -375,11 +375,11 @@ class ConsoleUI:
                 handle_info_command(self)
             elif cmd == '/rename':
                 handle_rename_command(self, parts)
-            elif cmd == '/addhost':
+            elif cmd == '/addhost' or cmd == '/ah':
                 handle_addhost_command(self, parts)
-            elif cmd == '/removehost':
+            elif cmd == '/removehost' or cmd == '/rmh':
                 handle_removehost_command(self, parts)
-            elif cmd == '/listhosts':
+            elif cmd == '/listhosts' or cmd == '/listhost' or cmd == '/ls':
                 handle_listhosts_command(self)
             elif cmd == '/multiline':
                 handle_multiline_command(self)
