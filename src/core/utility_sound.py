@@ -1,5 +1,5 @@
 import numpy as np
-import sounddevice as sd
+#import sounddevice as sd
 import time
 
 SAMPLE_RATE = 5000  # Sample rate in Hz
@@ -20,8 +20,8 @@ def play_notes(melody, duration=NOTE_DURATION, volume=VOLUME, samplerate=SAMPLE_
             # Generate sine wave for the frequency
             wave = volume * np.sin(2. * np.pi * frequency * t)
 
-            sd.play(wave, samplerate)
-            sd.wait() # Wait until the note is completely played
+            #sd.play(wave, samplerate)
+            #sd.wait() # Wait until the note is completely played
             
         else:
             time.sleep(duration) # Pause for the duration of the rest
