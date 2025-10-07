@@ -35,7 +35,7 @@ Tracking planned improvements to the Cigarettes app.
 - [ ] Display session stats: number of messages, duration, volume exchanged
 - [ ] Add a more readable prompt with color/nickname
 - [ ] Verbose/debug mode with detailed logs
-- [ ] Regenerate a key and an onion adress with a command.
+- [ ] Regenerate an onion adress with a comman (/reset_keys)
 
 ---
 
@@ -54,4 +54,4 @@ Tracking planned improvements to the Cigarettes app.
 
 ---
 
-**Last updated:** `14/07/25`
+**Last updated:** `07/10/25`

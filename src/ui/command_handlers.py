@@ -186,3 +186,13 @@ def handle_file_decline_command(console_ui, parts):
     file_transfer.reset_all_file_transfer_state()
     print(Fore.LIGHTRED_EX + "> [INFO] File transfer declined." + Style.RESET_ALL) 
     # print(Fore.LIGHTYELLOW_EX + "[BUG TO FIX] [The next message received will be bugged and not displayed, the second message will be displayed as normal]" + Style.RESET_ALL)
+
+def handle_reset_keys_command(console_ui):
+    confirm = input("Are you sure you want to reset your keys? This will generate a new key pair. (yes/no): ")
+    if confirm.lower() == 'yes':
+        console_ui.connection.crypto.reset_keys()
+        print(Fore.LIGHTYELLOW_EX + "Keys have been reset and new keys generated." + Style.RESET_ALL)
+        print("Your new fingerprint is: " + console_ui.connection.crypto.get_public_key_fingerprint())
+        print(Fore.LIGHTYELLOW_EX + "Please share your new fingerprint with your contacts." + Style.RESET_ALL)
+    else:
+        print("Key reset cancelled.")

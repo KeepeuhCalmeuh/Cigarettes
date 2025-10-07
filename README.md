@@ -69,11 +69,12 @@ For example: `/connect yq5jjvr7drkjrelzhut7kgclfuro65jjlivyzfmxiq2kyv5lickrl4qd.
 
 - `/connect <peer_onion_adress> <PEER_FINGERPRINT> <peer_listening_port (optional, default : 34567)>`: Connects to a remote peer
 - `/status`: Display connexion informations.
+- `/reset_keys`: Reset your encryption keys
 - `/stop`: Disconnects the connection with the peer without exiting the application
 - `/save`: Saves the chat history to a text file (`history` folder)
 - `/send_file <file_path>`: Send a file to the connected peer
 - `/ping`: Display the ping between you and your peer.
-- `/fingerprint`: Displays your public key fingerprint
+- `/info`: Displays your public key fingerprint
 - `/rename <fingerprint> <new_name>`: Rename a peer in known hosts
 - `/addHost (or /ad) <peer_onion_adress> <fingerprint>`: Add a host to known hosts
 - `/removehost (or /rmh) <peer_onion_address>`: Remove a peer from the host list.

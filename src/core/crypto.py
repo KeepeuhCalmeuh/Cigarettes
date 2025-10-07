@@ -44,30 +44,48 @@ class CryptoManager:
         """Load existing private key or generate a new one."""
         if os.path.exists(self.keyfile):
             # print(f" [DEBUG] Loading existing private key from: {self.keyfile}")
-            with open(self.keyfile, "rb") as f:
-                return serialization.load_pem_private_key(f.read(), password=None)
+            return self._load_private_key_from_file(self.keyfile)
         else:
             # print(f" [DEBUG] Generating new private key and saving to: {self.keyfile}")
-            private_key = ec.generate_private_key(ec.SECP384R1())
-            
-            # Ensure directory exists
             os.makedirs(self.keys_dir, exist_ok=True)
-            
-            with open(self.keyfile, "wb") as f:
-                f.write(private_key.private_bytes(
-                    encoding=serialization.Encoding.PEM,
-                    format=serialization.PrivateFormat.PKCS8,
-                    encryption_algorithm=serialization.NoEncryption()
-                ))
-            
-            # Set restrictive permissions on the key file (Unix-like systems)
-            try:
-                os.chmod(self.keyfile, 0o600)  # Read/write for owner only
-            except OSError:
-                # Windows doesn't support chmod, but that's okay
-                pass
-                
-            return private_key
+            return self._generate_private_key_file(self.keyfile)
+
+    def _load_private_key_from_file(self, path: str) -> ec.EllipticCurvePrivateKey:
+        """Load a private key from the specified file."""
+        with open(path, "rb") as f:
+            # Note: if the key is encrypted, 'password' should not be None.
+            # But in this case, it is not encrypted (NoEncryption)
+            return serialization.load_pem_private_key(f.read(), password=None)
+
+    def _generate_private_key_file(self, path: str) -> ec.EllipticCurvePrivateKey:
+        """Generate a new private key, save it to the specified path, and return it."""
+        
+        private_key = ec.generate_private_key(ec.SECP384R1())
+
+        with open(path, "wb") as f:
+            f.write(private_key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption()
+            ))
+
+        try:
+            # Read/write for owner only (0o600)
+            os.chmod(path, 0o600)
+        except OSError:
+            # Ignore for windows or if chmod fails
+            pass
+
+        return private_key
+
+    
+    def reset_keys(self) -> None:
+        """Reset the current keys by generating a new key pair."""
+        self.private_key = self._generate_private_key_file(self.keyfile)
+        self.public_key = self.private_key.public_key()
+        self.peer_public_key = None
+        self.session_key = None
+        self.cipher = None
 
     def sign_challenge(self, challenge: bytes) -> bytes:
         """Sign a challenge with the user's private key."""

@@ -34,7 +34,8 @@ from .command_handlers import (
     handle_exit_command,
     handle_send_file_command,
     handle_file_accept_command,
-    handle_file_decline_command
+    handle_file_decline_command,
+    handle_reset_keys_command
 )
 
 
@@ -58,6 +59,7 @@ class ConsoleUI:
         print("\nAvailable Commands :")
         print("  /connect <peer_onion_address> <PEER_FINGERPRINT> <peer_listening_port (optional, default : 34567)> - Connect to a remote peer")
         print("  /status                                    - Display connection status and peer information")
+        print("  /reset_keys                                - Reset your encryption keys")
         print("  /stop                                      - Disconnect from the peer without exiting the application")
         print("  /save                                      - Save the discussion history to a .txt file")
         print("  /send_file <file_path>                    - Send a file to the connected peer")
@@ -390,6 +392,8 @@ class ConsoleUI:
                 handle_file_accept_command(self, parts)
             elif cmd == '/file_decline':
                 handle_file_decline_command(self, parts)
+            elif cmd == '/reset_keys':
+                handle_reset_keys_command(self)
             else:
                 print(f"Unknown command: {cmd}")
                 print("Type /help for available commands.")
