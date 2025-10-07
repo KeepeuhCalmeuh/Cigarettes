@@ -1,5 +1,6 @@
 __pycache__
 .venv
+venv
 history
 user_private_key.pem
 user_public_key.pem
