@@ -8,6 +8,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 import os
+import sys
 from cryptography.hazmat.primitives import serialization
 from typing import Optional
 
@@ -41,47 +42,47 @@ class CryptoManager:
         self.cipher: Optional[AESGCM] = None
 
     def _load_or_generate_private_key(self) -> ec.EllipticCurvePrivateKey:
-        """Load existing private key or generate a new one."""
         if os.path.exists(self.keyfile):
-            # print(f" [DEBUG] Loading existing private key from: {self.keyfile}")
-            return self._load_private_key_from_file(self.keyfile)
-        else:
-            # print(f" [DEBUG] Generating new private key and saving to: {self.keyfile}")
-            os.makedirs(self.keys_dir, exist_ok=True)
-            return self._generate_private_key_file(self.keyfile)
+            passphrase = input("Passphrase (keep empty if none) : ")
+            password = passphrase.encode() if passphrase else None
+            return self._load_private_key_from_file(self.keyfile, password)
+        os.makedirs(self.keys_dir, exist_ok=True)
+        passphrase = input("New passphrase (keep empty if none) : ")
+        password = passphrase.encode() if passphrase else None
+        return self._generate_private_key_file(self.keyfile, password)
 
-    def _load_private_key_from_file(self, path: str) -> ec.EllipticCurvePrivateKey:
-        """Load a private key from the specified file."""
+    def _load_private_key_from_file(self, path: str, password: bytes | None) -> ec.EllipticCurvePrivateKey:
         with open(path, "rb") as f:
-            # Note: if the key is encrypted, 'password' should not be None.
-            # But in this case, it is not encrypted (NoEncryption)
-            return serialization.load_pem_private_key(f.read(), password=None)
+            key_data = f.read()
+        try:
+            return serialization.load_pem_private_key(key_data, password=password)
+        except Exception:
+            print("Error : passphrase incorrect or unreadable key.")
+            sys.exit(1)
 
-    def _generate_private_key_file(self, path: str) -> ec.EllipticCurvePrivateKey:
-        """Generate a new private key, save it to the specified path, and return it."""
-        
+    def _generate_private_key_file(self, path: str, password: bytes | None) -> ec.EllipticCurvePrivateKey:
         private_key = ec.generate_private_key(ec.SECP384R1())
-
+        encryption = (
+            serialization.BestAvailableEncryption(password)
+            if password
+            else serialization.NoEncryption()
+        )
         with open(path, "wb") as f:
             f.write(private_key.private_bytes(
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PrivateFormat.PKCS8,
-                encryption_algorithm=serialization.NoEncryption()
+                encryption_algorithm=encryption
             ))
-
         try:
-            # Read/write for owner only (0o600)
             os.chmod(path, 0o600)
         except OSError:
-            # Ignore for windows or if chmod fails
             pass
-
         return private_key
 
-    
     def reset_keys(self) -> None:
-        """Reset the current keys by generating a new key pair."""
-        self.private_key = self._generate_private_key_file(self.keyfile)
+        passphrase = input("New passphrase (keep empty if none) : ")
+        password = passphrase.encode() if passphrase else None
+        self.private_key = self._generate_private_key_file(self.keyfile, password)
         self.public_key = self.private_key.public_key()
         self.peer_public_key = None
         self.session_key = None
