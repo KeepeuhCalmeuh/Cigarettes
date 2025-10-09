@@ -72,7 +72,7 @@ def handle_file_transfer_request(message: str):
                 'file_obj': None
             })
             FILE_TRANSFER_BOOL = True
-            return f"[INFO] transfer file {file_name} {file_size} octets, accept ? (/file_accept or /file_decline)"
+            return f"[INFO] transfer file {file_name} {file_size} bytes, accept ? (/file_accept or /file_decline)"
     return None
 
 def accept_file_transfer():

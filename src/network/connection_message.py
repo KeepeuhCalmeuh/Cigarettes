@@ -37,10 +37,12 @@ class MessageMixin:
                     # print("ON EST DANS LE MODE RECEPTION DE FICHIER")
                     encrypted_chunk = self._receive_raw()
                     if not encrypted_chunk:
-                        self.message_callback("> [ERROR] Connection lost during file transfer.")
+                        self.message_callback(Fore.LIGHTRED_EX + "> [ERROR] Connection lost during file transfer.\nDeconnexion from the peer." + Style.RESET_ALL)
                         self._receiving_file = False
                         if self._file_receive_info and self._file_receive_info['file_obj']:
                             self._file_receive_info['file_obj'].close()
+                        file_transfer.reset_all_file_transfer_state()
+                        self.stop()
                         break
                     chunk = self.crypto.decrypt_bytes(encrypted_chunk)
                     self._file_receive_info['file_obj'].write(chunk)

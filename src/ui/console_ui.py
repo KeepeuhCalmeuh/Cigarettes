@@ -105,7 +105,8 @@ class ConsoleUI:
             file_path = file_transfer.file_transfer_context.get('file_path')
             if file_path:
                 self.connection.send_file_data(file_path, callback=self.print_progress_bar)
-                print(Fore.LIGHTGREEN_EX + "\n> [INFO] File sent successfully!" + Style.RESET_ALL)
+                # if the file isn't sent completely, the progress bar will not reach 100%
+                print(Fore.LIGHTGREEN_EX + "\n> [INFO] File sent successfully!\n" + Fore.LIGHTGREEN_EX + "If not, only the receiver would catch an error \nand would automaticly disconnect.\n\nIf you have been instantly disconnected, \nconsider asking the peer if the file was received." + Style.RESET_ALL)
                 # Allow sending messages again
                 file_transfer.FILE_TRANSFER_PROCEDURE = False
             else:

@@ -119,7 +119,7 @@ class PeerMixin:
                 #self.peer_socket.settimeout(5)  # Timeout pour éviter blocage sur recv
                 self._peer_connection_details = address
                 self._is_server_mode = True
-                self.message_callback(f"Incoming connection from {address} received.")
+                self.message_callback(Fore.LIGHTYELLOW_EX  + f"Incoming connection from {address} received." + Style.RESET_ALL)
                 if not self._exchange_handshake_data(
                     send_public_key_first=False,
                     peer_ip=address[0],
@@ -133,7 +133,7 @@ class PeerMixin:
                 self._receive_thread.start()
                 self._renewal_thread = threading.Thread(target=self._renewal_monitor, daemon=True)
                 self._renewal_thread.start()
-                self.message_callback(f"Successfully connected to {address}")
+                self.message_callback(Fore.LIGHTGREEN_EX + f"Successfully connected to {address}" + Style.RESET_ALL)
             except socket.timeout:
                 continue
             except Exception as e:
