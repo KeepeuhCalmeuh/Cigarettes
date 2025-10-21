@@ -341,7 +341,7 @@ class ConsoleUI:
             return
             
         try:
-            print(f"[ You | {datetime.now().strftime('%H:%M:%S')} ] {message}")
+            print(Fore.LIGHTBLUE_EX + f"[ You | {datetime.now().strftime('%H:%M:%S')} ]" + Style.RESET_ALL + f"{message}")
             self.connection.send_message(message)
             self.history.append(f"[ You | {datetime.now().strftime('%H:%M:%S')} ] {message}")
         except Exception as e:

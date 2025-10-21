@@ -105,7 +105,7 @@ class MessageMixin:
                         self.stop()
                         return
                     self._message_count += 1
-                    self.message_callback(f"[{self._get_peer_nickname()}  |  {datetime.now().strftime('%H:%M:%S')}] {message}")
+                    self.message_callback(Fore.LIGHTMAGENTA_EX + f"[ {self._get_peer_nickname()}  |  {datetime.now().strftime('%H:%M:%S')}]" + Style.RESET_ALL + f"{message}")
                     #play_message_received_sound()
 
             except Exception as e:
