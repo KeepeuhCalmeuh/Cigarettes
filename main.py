@@ -1,50 +1,16 @@
+#!/usr/bin/env python3
+"""
+Main entry point for the Cigarettes P2P chat application.
+This is the new modular version that uses the reorganized code structure.
+"""
+
 import sys
-from console_ui import ConsoleUI
-from local_ip_utils import get_local_ip
-from colorama import Fore, Style
+import os
 
+# Add the src directory to the Python path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-def print_banner():
-    banner = r"""
-                                                                                                            
-   █████████   ███                                         █████     █████                    
-  ███░░░░░███ ░░░                                         ░░███     ░░███                     
- ███     ░░░  ████   ███████  ██████   ████████   ██████  ███████   ███████    ██████   █████ 
-░███         ░░███  ███░░███ ░░░░░███ ░░███░░███ ███░░███░░░███░   ░░░███░    ███░░███ ███░░  
-░███          ░███ ░███ ░███  ███████  ░███ ░░░ ░███████   ░███      ░███    ░███████ ░░█████ 
-░░███     ███ ░███ ░███ ░███ ███░░███  ░███     ░███░░░    ░███ ███  ░███ ███░███░░░   ░░░░███
- ░░█████████  █████░░███████░░████████ █████    ░░██████   ░░█████   ░░█████ ░░██████  ██████ 
-  ░░░░░░░░░  ░░░░░  ░░░░░███ ░░░░░░░░ ░░░░░      ░░░░░░     ░░░░░     ░░░░░   ░░░░░░  ░░░░░░  
-                    ███ ░███                                                                  
-                   ░░██████                                                                   
-                    ░░░░░░                                                                                                                                                                                                                                                                   
-               P2P Encrypted Terminal Chat
-               Project: Cigarettes
-               Author : KeepeuhCalmeuh
-    """
-    print(Fore.RED + banner + Style.RESET_ALL)
-
-
-
-def main():
-    if len(sys.argv) != 2:
-        print("Usage: python main.py <port>")
-        print("Exemple: python main.py 5000")
-        return
-
-    try:
-        port = int(sys.argv[1])
-        if not (1024 <= port <= 65535):
-            raise ValueError("The port must be between 1024 and 65535.")
-    except ValueError as e:
-        print(f"Error: {str(e)}")
-        return
-
-    print_banner()
-    print(f"Your local IP address : {get_local_ip()}\n")
-
-    ui = ConsoleUI()
-    ui.start(port)
+from src.main import main
 
 if __name__ == "__main__":
-    main()
+    main() 

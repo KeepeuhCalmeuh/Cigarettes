@@ -9,13 +9,13 @@ A command-line encrypted P2P messaging application using modern cryptographic te
 - Diffie-Hellman key exchange on an elliptic curve
 - Message encryption with AES-256-GCM
 - Identity verification using public key fingerprints
+- SMSoIP over the Tor Network
 - Simple command-line interface
-
 
 ## Prerequisites
 
 - Python 3.8+
-- Cryptography package
+- Cryptography, Socks, Colorama, Requests packages
 
 ## Installation
 
@@ -24,47 +24,62 @@ A command-line encrypted P2P messaging application using modern cryptographic te
 ```bash
 python -m venv venv
 source venv/bin/activate # Linux/MacOS
-# or
+```
+or
+```bash
 .\venv\Scripts\activate # Windows
 ```
 
 2. Install the dependencies:
 
 ```bash
-pip install cryptography
+pip install -r requirements.txt
 ```
-
 ## Usage
 
-1. Start the application by specifying a listening port :
+**Please note that Tor currently does not support ARM machines and therefore Cigarettes is not deployable**
+
+1. Start the application :
 
 ```bash
-python main.py 5000
+python main.py
 ```
 
-2. The application will display your public key fingerprint and listen for connections.
+2. The application will display your public key fingerprint, your .onion adress and listen for connections.
 
-3. To connect to a peer, use the command:
+3. Add people to you known_hosts.json file, and let people add you to their known_hosts.json file.
+
+```
+/addHost <peer_onion_adress> <PEER_FINGERPRINT>
+```
+
+For example : `/addhost yq5jjvr7drkjrelzhut7kgclfuro65jjlivyzfmxiq2kyv5lickrl4qd.onion a2ae88fb900e1769e94850616cd7c9542d06ba3e2517bb47fbd9ab98debb6470`
+
+4. To connect to a peer, use the command:
 
 ```bash
-/connect <ip> <port>
+/connect <peer_onion_adress> <PEER_FINGERPRINT> <peer_listening_port (optional, default : 34567)>
 ```
 
-For example: `/connect 192.168.1.2 5000`
+For example: `/connect yq5jjvr7drkjrelzhut7kgclfuro65jjlivyzfmxiq2kyv5lickrl4qd.onion a2ae88fb900e1769e94850616cd7c9542d06ba3e2517bb47fbd9ab98debb6470`
 
-4. Verify the identity of your peer by comparing the displayed fingerprints.
-
-5. Type your messages and press Enter to send them.
+5. Type your messages and press Enter to send them. 
 
 ### Available Commands
 
-- `/connect <ip> <port>`: Connects to a remote peer
+- `/connect <peer_onion_adress> <PEER_FINGERPRINT> <peer_listening_port (optional, default : 34567)>`: Connects to a remote peer
+- `/status`: Display connexion informations.
+- `/reset_keys`: Reset your encryption keys
 - `/stop`: Disconnects the connection with the peer without exiting the application
 - `/save`: Saves the chat history to a text file (`history` folder)
-- `/fingerprint`: Displays your public key fingerprint
+- `/send_file <file_path>`: Send a file to the connected peer
+- `/ping`: Display the ping between you and your peer.
+- `/info`: Displays your public key fingerprint
 - `/rename <fingerprint> <new_name>`: Rename a peer in known hosts
-- `/addHost <ip:port> <fingerprint>`: Add a host to known hosts
-- `/listHosts`: List all known hosts
+- `/addHost (or /ad) <peer_onion_adress> <fingerprint>`: Add a host to known hosts
+- `/removehost (or /rmh) <peer_onion_address>`: Remove a peer from the host list.
+- `/listHosts (or /ls)`: List all known hosts
+- `/multiline`: Toggle multi-line message mode (use Shift+Enter for new line, Enter to send)
 - `/help`: Displays command help
 - `/exit`: Exits the application
 
@@ -73,11 +88,11 @@ For example: `/connect 192.168.1.2 5000`
 - All messages are encrypted with AES-256-GCM
 - Session keys are derived via ECDH and HKDF
 - Identity verification via SHA-256 public key fingerprints
-- Connection is automatically renewed (cut and re-established) after a certain number of messages (currently 10 messages) or a specific time interval (currently 2 minutes) to ensure fresh session keys. This enhances forward secrecy.
+
 
 ## Known Limitations / TODOs
+- ARM systems support
 
-- Sometimes, when the connection fail, you need to exit with /exit and restart the program to avoid timeout. This will be corrected in future versions.
 
 ## Note
 

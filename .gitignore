@@ -1,8 +1,21 @@
 __pycache__
 .venv
+venv
 history
 user_private_key.pem
 user_public_key.pem
 known_hosts.json
 .vscode
 note.txt
+plan_integration_tor.txt
+tor/
+to_send/
+backup_original/
+received_files/
+
+# Unit tests
+unit_tests/tests_commands.txt
+.pytest_cache/
+
+# Cryptographic keys
+keys/
