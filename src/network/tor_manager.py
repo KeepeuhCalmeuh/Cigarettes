@@ -200,11 +200,14 @@ class TorManager:
             cmd.extend(extra_args)
         
         try:
+            env_vars = os.environ.copy()
+            env_vars['LD_LIBRARY_PATH'] = self.TOR_DIR
             process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                text=True
+                text=True,
+                env=env_vars
             )
             time.sleep(2)
             if process.poll() is not None: 
