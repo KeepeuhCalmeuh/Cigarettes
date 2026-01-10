@@ -35,7 +35,8 @@ class MessageMixin:
                         self._file_receive_info = None
                         continue  # Restart the main loop to handle the next message as normal
                     # print("ON EST DANS LE MODE RECEPTION DE FICHIER")
-                    encrypted_chunk = (self._receive_raw())[0]
+                    encrypted_chunk = self._receive_raw()[0]
+                    # transmission_type = self._receive_raw()[1]   # Not needed for file chunks i suppose
                     if not encrypted_chunk:
                         self.message_callback(Fore.LIGHTRED_EX + "> [ERROR] Connection lost during file transfer.\nDeconnexion from the peer." + Style.RESET_ALL)
                         self._receiving_file = False
@@ -63,7 +64,9 @@ class MessageMixin:
                         self._file_receive_info = None
                     continue
                 else:
-                    encrypted_data = (self._receive_raw())[0]
+                    full_encrypted_data = self._receive_raw()
+                    encrypted_data = full_encrypted_data[0]
+                    transmission_type = full_encrypted_data[1]
                     if not encrypted_data:
                         self.message_callback(Fore.LIGHTYELLOW_EX + "[INFO] The peer has closed the connection or disconnected." + Style.RESET_ALL)
                         self.stop()
@@ -113,18 +116,20 @@ class MessageMixin:
                     self.message_callback(f"Error receiving message: {str(e)}")
                     break
 
-    def send_message(self, message: str) -> None:
+    def send_message(self, message: str, transmission_type: str = "MSG") -> None:
         """
         Send an encrypted message to the peer.
         Args:
             message: Message to send.
+            transmission_type: Type of transmission (default is 'MSG').
         """
         if not self.connected or not self.peer_socket:
             return
         try:
             encrypted_data = self.crypto.encrypt_message(message)
+            transmission_type_encrypted = self.crypto.encrypt_message(transmission_type)
             # print(f"Encrypted data: {encrypted_data}")
-            self._send_raw(encrypted_data)
+            self._send_raw(encrypted_data, transmission_type_encrypted)
         except Exception as e:
             self.message_callback(f"Error sending message: {str(e)}")
 

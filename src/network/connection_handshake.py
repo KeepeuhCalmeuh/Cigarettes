@@ -27,7 +27,7 @@ class HandshakeMixin:
                     "public_key": self.crypto.get_public_bytes().hex(),
                     "challenge": challenge.hex()
                 }
-                self._send_raw(json.dumps(handshake_data).encode())
+                self._send_raw(json.dumps(handshake_data).encode(), "HDSK".encode())
                 response_data = json.loads((self._receive_raw())[0].decode())
                 peer_public_key_bytes = bytes.fromhex(response_data["public_key"])
                 peer_challenge = bytes.fromhex(response_data["challenge"])
@@ -38,7 +38,7 @@ class HandshakeMixin:
                 self.crypto.set_peer_public_key(peer_public_key_bytes)
                 my_signature = self.crypto.sign_challenge(peer_challenge)
                 signature_data = {"signature": my_signature.hex()}
-                self._send_raw(json.dumps(signature_data).encode())
+                self._send_raw(json.dumps(signature_data).encode(), "HDSK".encode())
             else:
                 handshake_data = json.loads((self._receive_raw())[0].decode())
                 peer_public_key_bytes = bytes.fromhex(handshake_data["public_key"])
@@ -50,7 +50,7 @@ class HandshakeMixin:
                     "challenge": challenge.hex(),
                     "signature": my_signature.hex()
                 }
-                self._send_raw(json.dumps(response_data).encode())
+                self._send_raw(json.dumps(response_data).encode(), "HDSK".encode())
                 signature_data = json.loads((self._receive_raw())[0].decode())
                 peer_signature = bytes.fromhex(signature_data["signature"])
                 if not self.crypto.verify_signature(peer_public_key_bytes, challenge, peer_signature):
