@@ -4,16 +4,18 @@ class IOMixin:
     """
     Mixin for low-level socket I/O in P2PConnection.
     """
-    def _send_raw(self, data: bytes) -> None:
+    def _send_raw(self, data: bytes, transmission_type = "COM") -> None:
         """
         Send raw data to the peer.
         Args:
             data: Bytes to send.
+            transmission_type: Type of transmission (e.g., 'COM', 'SYS').
         """
         if self.peer_socket:
-            length = len(data)
+            data_to_send = transmission_type.encode() + b':' + data
+            length = len(data_to_send)
             self.peer_socket.send(length.to_bytes(4, 'big'))
-            self.peer_socket.send(data)
+            self.peer_socket.send(data_to_send)
 
     def _receive_raw(self) -> bytes:
         """
@@ -28,13 +30,14 @@ class IOMixin:
             if not length_bytes:
                 return b''
             length = int.from_bytes(length_bytes, 'big')
-            data = b''
-            while len(data) < length:
-                chunk = self.peer_socket.recv(length - len(data))
+            data_raw = b''
+            while len(data_raw) < length:
+                chunk = self.peer_socket.recv(length - len(data_raw))
                 if not chunk:
                     return b''
-                data += chunk
-            return data
+                data_raw += chunk
+            transmission_type, data = data_raw.split(b':', 1)
+            return data, transmission_type
         except Exception:
             return b''
 
