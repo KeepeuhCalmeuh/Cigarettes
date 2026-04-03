@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <cstring>
 #include <chrono>
+#include <openssl/rand.h>
 
 #ifndef _WIN32
     #include <sys/socket.h>
@@ -257,6 +258,21 @@ std::vector<uint8_t> Network::format_message(const std::vector<uint8_t>& payload
         body.push_back((timestamp >> (i * 8)) & 0xFF);
     }
 
+    // Calculate padding to make total TCP frame length a multiple of 512 bytes.
+    // Total frame = 4 (length header) + body.size() + P (padding) + 2 (padding length)
+    size_t current_len = 4 + body.size() + 2;
+    size_t remainder = current_len % 512;
+    size_t padding_len = (512 - remainder) % 512;
+
+    std::vector<uint8_t> padding(padding_len);
+    if (padding_len > 0) {
+        RAND_bytes(padding.data(), padding_len);
+    }
+
+    body.insert(body.end(), padding.begin(), padding.end());
+    body.push_back((padding_len >> 0) & 0xFF);
+    body.push_back((padding_len >> 8) & 0xFF);
+
     // Prepend 4-byte length
     uint32_t total_len = (uint32_t)body.size();
     std::vector<uint8_t> message;
@@ -396,8 +412,21 @@ void Network::io_loop() {
             std::vector<uint8_t> full_msg(recv_buffer.begin() + 4, recv_buffer.begin() + 4 + body_len);
             recv_buffer.erase(recv_buffer.begin(), recv_buffer.begin() + 4 + body_len);
 
+            // Strip padding if present (last 2 bytes represent padding length)
+            if (full_msg.size() >= 2) {
+                uint16_t padding_len = full_msg[full_msg.size() - 2] | (full_msg[full_msg.size() - 1] << 8);
+                if (full_msg.size() >= 2 + (size_t)padding_len) {
+                    full_msg.resize(full_msg.size() - 2 - padding_len);
+                } else {
+                    std::cerr << "[Network] Corrupt padding length, dropping connection\n";
+                    disconnect();
+                    recv_buffer.clear();
+                    break;
+                }
+            }
+
             std::lock_guard<std::mutex> lock(incoming_mutex);
-            incoming_messages.push(full_msg); // push body only (no length prefix)
+            incoming_messages.push(full_msg); // push true body only
         }
     }
 }
