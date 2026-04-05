@@ -62,7 +62,6 @@ void ProtocolHandler::process_message(uint16_t type, const std::vector<uint8_t>&
 }
 
 void ProtocolHandler::send_connection_request(uint16_t type) {
-    // Payload: [1 byte onion len] [onion] [pubkey]
     std::string onion = network->get_onion(); 
     if (onion.empty()) onion = "unknown.onion"; // Fallback if Tor manager hasn't synced reading
 
@@ -71,7 +70,19 @@ void ProtocolHandler::send_connection_request(uint16_t type) {
     std::vector<uint8_t> out;
     out.push_back((uint8_t)onion.length());
     for (char c : onion) out.push_back(c);
+    
+    uint16_t pub_len = pub_bytes.size();
+    out.push_back(pub_len & 0xFF);
+    out.push_back((pub_len >> 8) & 0xFF);
     out.insert(out.end(), pub_bytes.begin(), pub_bytes.end());
+    
+    // Sign the previous data
+    std::vector<uint8_t> signature = crypto_manager->sign_data(out);
+    
+    uint16_t sig_len = signature.size();
+    out.push_back(sig_len & 0xFF);
+    out.push_back((sig_len >> 8) & 0xFF);
+    out.insert(out.end(), signature.begin(), signature.end());
     
     network->sendMessage(out, type);
 }
@@ -82,10 +93,31 @@ void ProtocolHandler::handle_type_01(const std::vector<uint8_t>& payload) {
     // Parse Payload
     if (payload.empty()) return fail("Empty 0x01");
     uint8_t onion_len = payload[0];
-    if (payload.size() < (size_t)(1 + onion_len)) return fail("Invalid 0x01 len");
+    size_t offset = 1;
     
-    peer_onion = std::string(payload.begin() + 1, payload.begin() + 1 + onion_len);
-    peer_pub_key = std::vector<uint8_t>(payload.begin() + 1 + onion_len, payload.end());
+    if (payload.size() < offset + onion_len) return fail("Invalid 0x01 onion len");
+    peer_onion = std::string(payload.begin() + offset, payload.begin() + offset + onion_len);
+    offset += onion_len;
+    
+    if (payload.size() < offset + 2) return fail("Invalid 0x01 pub_len");
+    uint16_t pub_len = payload[offset] | (payload[offset+1] << 8);
+    offset += 2;
+    
+    if (payload.size() < offset + pub_len) return fail("Invalid 0x01 pubkey len");
+    peer_pub_key = std::vector<uint8_t>(payload.begin() + offset, payload.begin() + offset + pub_len);
+    offset += pub_len;
+    
+    if (payload.size() < offset + 2) return fail("Invalid 0x01 sig_len");
+    uint16_t sig_len = payload[offset] | (payload[offset+1] << 8);
+    offset += 2;
+    
+    if (payload.size() < offset + sig_len) return fail("Invalid 0x01 signature len");
+    std::vector<uint8_t> signature(payload.begin() + offset, payload.begin() + offset + sig_len);
+    
+    std::vector<uint8_t> signed_data(payload.begin(), payload.begin() + (offset - 2));
+    if (!crypto_manager->verify_signature(signed_data, signature, peer_pub_key)) {
+        return fail("Invalid 0x01 signature");
+    }
     
     // Verify fingerprint
     std::string fingerprint = CryptoManager::calculate_fingerprint(peer_pub_key);
@@ -114,7 +146,30 @@ void ProtocolHandler::handle_type_02(const std::vector<uint8_t>& payload) {
     // Parse Payload
     if (payload.empty()) return fail("Empty 0x02");
     uint8_t onion_len = payload[0];
-    peer_pub_key = std::vector<uint8_t>(payload.begin() + 1 + onion_len, payload.end());
+    size_t offset = 1;
+    
+    if (payload.size() < offset + onion_len) return fail("Invalid 0x02 onion len");
+    offset += onion_len;
+    
+    if (payload.size() < offset + 2) return fail("Invalid 0x02 pub_len");
+    uint16_t pub_len = payload[offset] | (payload[offset+1] << 8);
+    offset += 2;
+
+    if (payload.size() < offset + pub_len) return fail("Invalid 0x02 pubkey len");
+    peer_pub_key = std::vector<uint8_t>(payload.begin() + offset, payload.begin() + offset + pub_len);
+    offset += pub_len;
+
+    if (payload.size() < offset + 2) return fail("Invalid 0x02 sig_len");
+    uint16_t sig_len = payload[offset] | (payload[offset+1] << 8);
+    offset += 2;
+
+    if (payload.size() < offset + sig_len) return fail("Invalid 0x02 signature len");
+    std::vector<uint8_t> signature(payload.begin() + offset, payload.begin() + offset + sig_len);
+
+    std::vector<uint8_t> signed_data(payload.begin(), payload.begin() + (offset - 2));
+    if (!crypto_manager->verify_signature(signed_data, signature, peer_pub_key)) {
+        return fail("Invalid 0x02 signature");
+    }
 
     // Verify fingerprint
     std::string fingerprint = CryptoManager::calculate_fingerprint(peer_pub_key);

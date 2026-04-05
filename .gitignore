@@ -7,6 +7,9 @@ test_config
 tor/
 received_files/
 build/
+tor_A/
+tor_B/
+keys/
 
 p2p_messenger
 cigs
@@ -29,11 +32,9 @@ libCryptoSession.o
 libCrypto.o
 ProtocolHandler.o
 libCigarettes.so
+
 notes.txt
-
-
-tor_A/
-tor_B/
-
 peer_a.log
 peer_b.log
+known_hosts.json
+.config
