@@ -44,19 +44,19 @@ int main(int argc, char* argv[]) {
     if (argc > 3) socks_port = std::stoi(argv[3]);
 
     try {
-        std::cout << "[Info] Starting CryptoManager...\n";
+        std::cout << "\033[33m" << "[Info] Starting CryptoManager..." << "\033[0m" << "\n";
         CryptoManager crypto(passphrase);
-        std::cout << "[Info] My fingerprint: " << crypto.get_fingerprint() << "\n";
+        std::cout << "\033[33m" << "[Info] My fingerprint: " << "\033[36m" << crypto.get_fingerprint() << "\033[0m" << "\n";
 
-        std::cout << "[Info] Starting Tor Network on Hidden Service port " << service_port << "...\n";
+        std::cout << "\033[33m" << "[Info] Starting Tor Network on Hidden Service port " << service_port << "..." << "\033[0m" << "\n";
         Network network(service_port, install_dir, socks_port, version);
-        std::cout << "[Info] My onion address: " << network.get_onion() << "\n";
+        std::cout << "\033[33m" << "[Info] My onion address: " << "\033[36m" << network.get_onion() << "\033[0m" << "\n";
 
         HostManager hosts;
         ProtocolHandler protocol(&network, &crypto, &hosts);
         CommandHandler commands(&protocol, &hosts, keep_running);
 
-        std::cout << R"(========================================================
+        std::cout << "\033[31m" << R"(========================================================
 _________ .__                            __    __                 
 \_   ___ \|__| _________ _______   _____/  |__/  |_  ____   ______
 /    \  \/|  |/ ___\__  \_  __ \_/ __ \   __\   __\/ __ \ /  ___/
@@ -70,7 +70,7 @@ _________ .__                            __    __
  Type '/help' to see all commands.
  Type '/exit' to quit. Otherwise, just type and hit Enter.
 ========================================================
-> )";
+> )" << "\033[0m";
 
         std::thread cin_thread(input_thread);
 
