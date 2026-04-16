@@ -3,6 +3,7 @@
 #include <fstream>
 #include <thread>
 #include <chrono>
+#include <cstdlib>
 
 #ifdef _WIN32
     #include <windows.h>
@@ -14,6 +15,52 @@
     #include <signal.h>
     #define EXE_EXT ""
 #endif
+
+static bool isExecutable(const fs::path& p) {
+#ifdef _WIN32
+    return fs::exists(p);
+#else
+    return fs::exists(p) && access(p.c_str(), X_OK) == 0;
+#endif
+}
+
+static fs::path findExecutableInPath(const std::string& name) {
+    const char* path_env = std::getenv("PATH");
+    if (!path_env) return {};
+
+#ifdef _WIN32
+    const char path_sep = ';';
+    const std::vector<std::string> extensions = {".exe", ".bat", ".cmd", ""};
+#else
+    const char path_sep = ':';
+    const std::vector<std::string> extensions = {""};
+#endif
+
+    std::string path_str(path_env);
+    size_t start = 0;
+    while (start <= path_str.size()) {
+        size_t end = path_str.find(path_sep, start);
+        if (end == std::string::npos) end = path_str.size();
+        std::string dir = path_str.substr(start, end - start);
+        if (!dir.empty()) {
+            for (const auto& ext : extensions) {
+                fs::path candidate = fs::path(dir) / (name + ext);
+                if (isExecutable(candidate)) return candidate;
+            }
+        }
+        start = end + 1;
+    }
+    return {};
+}
+
+static bool testTorExecutable(const fs::path& path) {
+#ifdef _WIN32
+    std::string cmd = "\"" + path.string() + "\" --version >nul 2>&1";
+#else
+    std::string cmd = "\"" + path.string() + "\" --version >/dev/null 2>&1";
+#endif
+    return std::system(cmd.c_str()) == 0;
+}
 
 TorManager::TorManager(int port, const std::string& dir, int s_port, const std::string& ver)
     : service_port(port), socks_port(s_port), version(ver), root_path(fs::absolute(dir)) {
@@ -38,7 +85,17 @@ std::string TorManager::getDownloadUrl() {
 }
 
 bool TorManager::ensureTorInstalled() {
-    // List of candidate paths to check for the Tor executable
+    fs::path system_tor = findExecutableInPath("tor");
+    if (!system_tor.empty()) {
+        if (testTorExecutable(system_tor)) {
+            executable_path = system_tor;
+            std::cout << "[Tor] Using system Tor: " << executable_path << std::endl;
+            return true;
+        }
+        std::cout << "[Tor] Tor found in PATH but the binary is not executable or incompatible : " << system_tor << std::endl;
+    }
+
+    // Liste des chemins locaux à vérifier
     std::vector<fs::path> candidates = {
         root_path / ("tor" EXE_EXT),
         root_path / "tor" / ("tor" EXE_EXT),
@@ -46,14 +103,25 @@ bool TorManager::ensureTorInstalled() {
     };
 
     for (const auto& p : candidates) {
-        if (fs::exists(p)) {
-            executable_path = p;
-            return true;
+        if (isExecutable(p)) {
+            if (testTorExecutable(p)) {
+                executable_path = p;
+                std::cout << "[Tor] Using local Tor: " << executable_path << std::endl;
+                return true;
+            }
+            std::cout << "[Tor] Local Tor found but incompatible: " << p << std::endl;
         }
     }
 
-    std::cout << "[Tor] Installation non trouvée dans " << root_path << ". Téléchargement..." << std::endl;
-    return downloadAndExtract(getDownloadUrl());
+    std::cout << "[Tor] Installation not found in " << root_path << ". Downloading..." << std::endl;
+    if (!downloadAndExtract(getDownloadUrl())) {
+        std::cout << "[Tor] Failed to download/extract Tor. Install Tor via your package manager." << std::endl;
+        std::cout << "[Tor] On Arch Linux: sudo pacman -S tor" << std::endl;
+        std::cout << "[Tor] On Debian/Ubuntu: sudo apt install tor" << std::endl;
+        return false;
+    }
+
+    return true;
 }
 
 bool TorManager::downloadAndExtract(const std::string& url) {
@@ -125,7 +193,15 @@ void TorManager::killProcess(long long pid) {
 }
 
 bool TorManager::start() {
-    if (!ensureTorInstalled() || !createTorrc()) return false;
+    if (!ensureTorInstalled()) {
+        std::cerr << "[Tor] Failed to find or start Tor. Check the installation or install Tor via your package manager." << std::endl;
+        return false;
+    }
+
+    if (!createTorrc()) {
+        std::cerr << "[Tor] Failed to create torrc file." << std::endl;
+        return false;
+    }
 
     std::vector<std::string> args = {"-f", (root_path / "torrc").string()};
     tor_pid = launchProcess(args);
@@ -133,6 +209,8 @@ bool TorManager::start() {
     if (tor_pid > 0 && waitForOnionAddress()) {
         return true;
     }
+
+    std::cerr << "[Tor] Tor failed to start correctly or did not create a hidden service." << std::endl;
     stop();
     return false;
 }
