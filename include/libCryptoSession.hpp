@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstdint>
 #include <string>
+#include "MemorySecurity.hpp"
 
 class CryptoSession {
 public:
@@ -24,12 +25,12 @@ public:
     bool sessionEstablished();
 private:
     void compute_ecdh();
-    void derive_hkdf(const std::vector<uint8_t>& shared_secret);
+    void derive_hkdf(const SecureVector& shared_secret);
     
     EVP_PKEY* my_private_key = nullptr;
     EVP_PKEY* peer_public_key = nullptr;
     
-    std::vector<uint8_t> session_key; // final session key derived from ECDH + HKDF for AES-256-GCM
+    SecureVector session_key; // final session key derived from ECDH + HKDF for AES-256-GCM
 };
 
 #endif

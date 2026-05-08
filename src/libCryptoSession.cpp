@@ -52,7 +52,7 @@ void CryptoSession::compute_ecdh() {
     size_t secret_len;
     EVP_PKEY_derive(ctx, nullptr, &secret_len);
 
-    std::vector<uint8_t> shared_secret(secret_len);
+    SecureVector shared_secret(secret_len);
     if (EVP_PKEY_derive(ctx, shared_secret.data(), &secret_len) <= 0) {
         EVP_PKEY_CTX_free(ctx);
         throw std::runtime_error("Derivation failed");
@@ -63,7 +63,7 @@ void CryptoSession::compute_ecdh() {
     derive_hkdf(shared_secret);
 }
 
-void CryptoSession::derive_hkdf(const std::vector<uint8_t>& shared_secret) {
+void CryptoSession::derive_hkdf(const SecureVector& shared_secret) {
     EVP_KDF *kdf = EVP_KDF_fetch(NULL, "HKDF", NULL);
     EVP_KDF_CTX *kctx = EVP_KDF_CTX_new(kdf);
 

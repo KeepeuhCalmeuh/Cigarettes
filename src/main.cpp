@@ -2,6 +2,7 @@
 #include "libCrypto.hpp"
 #include "ProtocolHandler.hpp"
 #include "CommandHandler.hpp"
+#include "MemorySecurity.hpp"
 #include "libConfig.hpp"
 #include "libHost.hpp"
 #include <iostream>
@@ -35,9 +36,13 @@ int main(int argc, char* argv[]) {
     std::string version = config.version;
 
     // get passphrase from user
-    std::string passphrase;
-    std::cout << "Enter passphrase: ";
-    std::cin >> passphrase;
+    SecureString passphrase;
+    std::cout << "Enter passphrase (leave empty for no encryption): ";
+
+    char c;
+    while (std::cin.get(c) && c != '\n') {
+        passphrase.push_back(c);
+    }
 
     if (argc > 1) service_port = std::stoi(argv[1]);
     if (argc > 2) install_dir = argv[2];

@@ -166,11 +166,15 @@ void Network::close_connection() {
     connected = false;
     peer_onion_address.clear();
     peer_fingerprint.clear();
-    if (client_socket != INVALID_SOCKET_VAL) {
-        closesocket(client_socket);
-        client_socket = INVALID_SOCKET_VAL;
+    
+    {
+        std::lock_guard<std::mutex> lock(socket_mutex);
+        if (client_socket != INVALID_SOCKET_VAL) {
+            closesocket(client_socket);
+            client_socket = INVALID_SOCKET_VAL;
+        }
     }
-    // Vider la queue sortante pour éviter des envois parasites
+    
     std::lock_guard<std::mutex> lock(outgoing_mutex);
     while (!outgoing_messages.empty()) outgoing_messages.pop();
 }
@@ -195,26 +199,7 @@ bool Network::isConnected() const {
     return connected;
 }
 
-/*
-Message format:
-[4 bytes total_body_len][8 bytes type][payload][8 bytes timestamp]
 
-Message type : 
-0x01: Initial connection request
-0x02: Response to connection request (includes responder's onion and pubkey)
-0x03: Challenge/response messages for authentication
-0x04: Encrypted chat message
-0x05: Disconnect notification
-0x06: Rejection message (unknown fingerprint)
-
-future message types to consider:
-0x07: ping
-0x08: pong
-0x09: file transfer initialisation messages
-0x0A: file transfer accept/reject message
-0x0B: file transfer data chunk
-0x0C: file transfer completion message
-*/
 void Network::sendMessage(const std::vector<uint8_t>& payload, uint16_t message_type) {
     std::vector<uint8_t> msg = format_message(payload, message_type);
     std::lock_guard<std::mutex> lock(outgoing_mutex);
@@ -341,23 +326,29 @@ void Network::listener_loop() {
 }
 
 void Network::io_loop() {
-    std::vector<uint8_t> recv_buffer; // accumulate TCP stream bytes here
+    std::vector<uint8_t> recv_buffer;
 
     while (is_running) {
-        if (!connected || client_socket == INVALID_SOCKET_VAL) {
+        socket_t sock;
+        {
+            std::lock_guard<std::mutex> lock(socket_mutex);
+            sock = client_socket; // copie locale sûre
+        }
+
+        if (!connected || sock == INVALID_SOCKET_VAL) {
             recv_buffer.clear();
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             continue;
         }
 
-        // Send pending messages
+        // Send
         {
             std::lock_guard<std::mutex> lock(outgoing_mutex);
             while (!outgoing_messages.empty()) {
                 const auto& msg = outgoing_messages.front();
                 size_t total_sent = 0;
                 while (total_sent < msg.size()) {
-                    int sent = send(client_socket, (char*)msg.data() + total_sent, msg.size() - total_sent, 0);
+                    int sent = send(sock, (char*)msg.data() + total_sent, msg.size() - total_sent, 0);
                     if (sent <= 0) break;
                     total_sent += sent;
                 }
@@ -365,28 +356,24 @@ void Network::io_loop() {
             }
         }
 
-        // Receive raw bytes into buffer
+        // Receive
         fd_set readfds;
         FD_ZERO(&readfds);
-        FD_SET(client_socket, &readfds);
+        FD_SET(sock, &readfds); // ← utilise la copie locale, pas client_socket directement
 
-        struct timeval tv;
-        tv.tv_sec = 0;
-        tv.tv_usec = 10000; // 10ms
+        struct timeval tv { 0, 10000 };
+        int ret = select(sock + 1, &readfds, NULL, NULL, &tv);
 
-        int ret = select(client_socket + 1, &readfds, NULL, NULL, &tv);
-        if (ret > 0 && FD_ISSET(client_socket, &readfds)) {
+        if (ret > 0 && FD_ISSET(sock, &readfds)) {
             char buffer[4096];
-            int bytes_received = recv(client_socket, buffer, sizeof(buffer), 0);
+            int bytes_received = recv(sock, buffer, sizeof(buffer), 0);
             if (bytes_received > 0) {
                 recv_buffer.insert(recv_buffer.end(), buffer, buffer + bytes_received);
-            } else if (bytes_received <= 0) {
+            } else {
                 disconnect();
                 recv_buffer.clear();
                 continue;
             }
-        } else if (ret < 0) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
 
         // Parse complete messages from recv_buffer

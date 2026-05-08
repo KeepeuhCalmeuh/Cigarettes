@@ -14,6 +14,8 @@
 #include <openssl/sha.h>
 #include <openssl/core_names.h>
 
+#include "MemorySecurity.hpp"
+
 #ifdef _WIN32
 #define EXPORT __declspec(dllexport)
 #else
@@ -22,7 +24,7 @@
 
 class CryptoManager {
 public:
-    CryptoManager(std::string passphrase);
+    CryptoManager(const SecureString& passphrase);
     ~CryptoManager();
 
     EVP_PKEY* get_private_key() const { return pkey; }
@@ -32,10 +34,10 @@ public:
     bool verify_signature(const std::vector<uint8_t>& data, const std::vector<uint8_t>& signature, const std::vector<uint8_t>& peer_public_key);
     std::string get_fingerprint() const;
     static std::string calculate_fingerprint(const std::vector<uint8_t>& public_key);
-    void reset_key(std::string passphrase);
+    void reset_key(const SecureString& passphrase);
 private:
-    void generate_keys(std::string passphrase);
-    void load_keys(std::string passphrase);
+    void generate_keys(const SecureString& passphrase);
+    void load_keys(const SecureString& passphrase);
     bool is_key_file_encrypted();
     void derive_public_key();
     void compute_fingerprint();

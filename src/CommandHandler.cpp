@@ -162,7 +162,8 @@ void CommandHandler::handleResetKey(const std::string& args) {
     std::cout.flush();
 
     try {
-        protocol->get_crypto()->reset_key(args);
+        SecureString secure_args(args.begin(), args.end());
+        protocol->get_crypto()->reset_key(secure_args);
         std::cout << "[+] Identity reset successful!\n";
         std::cout << "[+] New fingerprint: " << protocol->get_crypto()->get_fingerprint() << "\n";
         std::cout << "[!] IMPORTANT: You MUST restart the application for the changes to take effect on the Tor network.\n";

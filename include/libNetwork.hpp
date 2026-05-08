@@ -67,6 +67,8 @@ private:
     std::thread listener_thread;
     std::thread io_thread;
 
+    std::mutex socket_mutex;
+
     void listener_loop();
     void io_loop();
     

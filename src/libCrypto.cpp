@@ -1,7 +1,7 @@
 #include "libCrypto.hpp"
 #include <filesystem>
 
-CryptoManager::CryptoManager(std::string passphrase) {
+CryptoManager::CryptoManager(const SecureString& passphrase) {
     load_keys(passphrase);
     derive_public_key();
     compute_fingerprint();
@@ -14,7 +14,7 @@ CryptoManager::~CryptoManager() {
     }
 }
 
-void CryptoManager::load_keys(std::string passphrase) {
+void CryptoManager::load_keys(const SecureString& passphrase) {
     bool file_exists = false;
     {
         FILE* test_fp = fopen("keys/private_key.pem", "rb");
@@ -68,7 +68,7 @@ bool CryptoManager::is_key_file_encrypted() {
     return false;
 }
 
-void CryptoManager::generate_keys(std::string passphrase) {
+void CryptoManager::generate_keys(const SecureString& passphrase) {
     EVP_PKEY_CTX* pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, nullptr);
     if (!pctx) throw std::runtime_error("EVP_PKEY_CTX_new_id failed");
 

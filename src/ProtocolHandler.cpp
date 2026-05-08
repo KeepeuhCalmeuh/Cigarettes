@@ -42,7 +42,24 @@ void ProtocolHandler::tick() {
         process_message(type, actual_payload);
     }
 }
+/*
+Message format:
+[4 bytes total_body_len][8 bytes type][payload][8 bytes timestamp]
 
+Message type : 
+0x01: Initial connection request
+0x02: Response to connection request (includes responder's onion and pubkey)
+0x03: Challenge/response messages for authentication
+0x04: Encrypted chat message
+0x05: Disconnect notification
+0x06: Rejection message (unknown fingerprint)
+0x07: ping
+0x08: pong
+0x09: file transfer initialisation messages
+0x0A: file transfer accept/reject message
+0x0B: file transfer data chunk
+0x0C: file transfer completion message
+*/
 void ProtocolHandler::process_message(uint16_t type, const std::vector<uint8_t>& payload) {
     switch (type) {
         case 0x01: handle_type_01(payload); break;
@@ -188,7 +205,7 @@ void ProtocolHandler::handle_type_02(const std::vector<uint8_t>& payload) {
 
     // Send Challenge 0x03 A
     my_nonce = generate_nonce();
-    network->sendMessage(my_nonce, 0x03);
+    network->sendMessage(std::vector<uint8_t>(my_nonce.begin(), my_nonce.end()), 0x03);
     
     current_state = State::AWAITING_CHALLENGE_B_AND_RESP_A;
 }
@@ -197,18 +214,18 @@ void ProtocolHandler::handle_type_02(const std::vector<uint8_t>& payload) {
 void ProtocolHandler::handle_type_03(const std::vector<uint8_t>& payload) {
     if (role == Role::RESPONDER && current_state == State::AWAITING_CHALLENGE_A) {
         if (payload.size() != 32) return fail("Invalid Challenge A size");
-        peer_nonce = payload;
+        peer_nonce = SecureVector(payload.begin(), payload.end());
         
         std::cout << "[Protocol] Received Challenge A. Sending Challenge B + Resp A...\n";
         
         // Sign peer nonce
-        std::vector<uint8_t> sigA = crypto_manager->sign_data(peer_nonce);
+        std::vector<uint8_t> sigA = crypto_manager->sign_data(std::vector<uint8_t>(peer_nonce.begin(), peer_nonce.end()));
         
         // Gen my nonce
         my_nonce = generate_nonce();
         
         // payload: [my_nonce 32] [sig_len 2] [sigA]
-        std::vector<uint8_t> out = my_nonce;
+        std::vector<uint8_t> out(my_nonce.begin(), my_nonce.end());
         uint16_t sigA_len = sigA.size();
         out.push_back(sigA_len & 0xFF);
         out.push_back((sigA_len >> 8) & 0xFF);
@@ -221,20 +238,20 @@ void ProtocolHandler::handle_type_03(const std::vector<uint8_t>& payload) {
         // payload: [peer_nonce 32] [sig_len 2] [sigA]
         if (payload.size() < 34) return fail("Invalid Challenge B");
         
-        peer_nonce = std::vector<uint8_t>(payload.begin(), payload.begin() + 32);
+        peer_nonce = SecureVector(payload.begin(), payload.begin() + 32);
         uint16_t sigA_len = payload[32] | (payload[33] << 8);
         if (payload.size() != 34 + sigA_len) return fail("Invalid SigA len");
         
         std::vector<uint8_t> sigA(payload.begin() + 34, payload.end());
         
-        if (!crypto_manager->verify_signature(my_nonce, sigA, peer_pub_key)) {
+        if (!crypto_manager->verify_signature(std::vector<uint8_t>(my_nonce.begin(), my_nonce.end()), sigA, peer_pub_key)) {
             return fail("Signature A invalid!");
         }
         
         std::cout << "[Protocol] verified Peer B identity!\n";
         
         // Send Resp B
-        std::vector<uint8_t> sigB = crypto_manager->sign_data(peer_nonce);
+        std::vector<uint8_t> sigB = crypto_manager->sign_data(std::vector<uint8_t>(peer_nonce.begin(), peer_nonce.end()));
         network->sendMessage(sigB, 0x03);
         
         // Setup session
@@ -244,7 +261,7 @@ void ProtocolHandler::handle_type_03(const std::vector<uint8_t>& payload) {
     }
     else if (role == Role::RESPONDER && current_state == State::AWAITING_RESP_B) {
         // payload is sigB
-        if (!crypto_manager->verify_signature(my_nonce, payload, peer_pub_key)) {
+        if (!crypto_manager->verify_signature(std::vector<uint8_t>(my_nonce.begin(), my_nonce.end()), payload, peer_pub_key)) {
             return fail("Signature B invalid!");
         }
         
@@ -282,7 +299,14 @@ void ProtocolHandler::handle_type_06(const std::vector<uint8_t>& /*payload*/) {
 // Handle PING
 void ProtocolHandler::handle_type_07(const std::vector<uint8_t>& payload) {
     if (current_state != State::ESTABLISHED || !session) return;
-    network->sendMessage(payload, 0x08); // Send PONG
+    
+    try {
+        // Just decrypt and re-encrypt the same payload as a PONG response. The initiator will measure RTT based on this.
+        std::string plaintext = session->decrypt(payload);
+        network->sendMessage(session->encrypt(plaintext), 0x08);
+    } catch (const std::exception& e) {
+        std::cerr << "[Protocol] Invalid PING payload, ignoring: " << e.what() << "\n";
+    }
 }
 
 // Handle PONG
@@ -317,7 +341,15 @@ void ProtocolHandler::handle_type_09(const std::vector<uint8_t>& payload) {
     if (pipe_pos == std::string::npos) return;
 
     std::string size_str = decrypted.substr(0, pipe_pos);
-    std::string filename = decrypted.substr(pipe_pos + 1);
+    std::string raw_name = decrypted.substr(pipe_pos + 1);
+    current_transfer.filename = std::filesystem::path(raw_name).filename().string();
+
+    if (current_transfer.filename.empty() || current_transfer.filename == "." || current_transfer.filename == "..") {
+        std::cerr << "[Protocol] Rejected: invalid filename from peer.\n";
+        network->sendMessage(session->encrypt("Reject_file_transfer"), 0x0A);
+        cleanup_transfer();
+        return;
+    }
 
     current_transfer.active = true;
     current_transfer.filename = filename;
@@ -435,22 +467,24 @@ void ProtocolHandler::send_next_chunk() {
     if (!current_transfer.active || !current_transfer.is_sending || !current_transfer.stream.is_open()) return;
 
     char buffer[4096];
-    current_transfer.stream.read(buffer, sizeof(buffer));
-    std::streamsize bytes_read = current_transfer.stream.gcount();
 
-    if (bytes_read > 0) {
+    while (true) {
+        current_transfer.stream.read(buffer, sizeof(buffer));
+        std::streamsize bytes_read = current_transfer.stream.gcount();
+
+        if (bytes_read <= 0) break;
+
         std::vector<uint8_t> chunk(buffer, buffer + bytes_read);
         network->sendMessage(session->encrypt_bytes(chunk), 0x0B);
         current_transfer.processed += bytes_read;
-        
-        if (!current_transfer.stream.eof()) {
-            send_next_chunk(); 
-        } else {
+
+        if (current_transfer.stream.eof()) {
             std::string done_payload = std::to_string(current_transfer.size) + "|" + current_transfer.filename;
             network->sendMessage(session->encrypt(done_payload), 0x0C);
             std::cout << "[Protocol] File transfer completed successfully.\n> ";
             std::cout.flush();
             cleanup_transfer();
+            break;
         }
     }
 }
@@ -492,8 +526,8 @@ bool ProtocolHandler::receive_chat(std::string& out_msg) {
     return false;
 }
 
-std::vector<uint8_t> ProtocolHandler::generate_nonce() {
-    std::vector<uint8_t> nonce(32);
+SecureVector ProtocolHandler::generate_nonce() {
+    SecureVector nonce(32);
     RAND_bytes(nonce.data(), 32);
     return nonce;
 }

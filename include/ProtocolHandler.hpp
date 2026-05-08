@@ -11,6 +11,7 @@
 #include <queue>
 #include <fstream>
 #include <filesystem>
+#include "MemorySecurity.hpp"
 
 class ProtocolHandler {
 public:
@@ -61,8 +62,8 @@ private:
     std::string peer_onion;
     std::vector<uint8_t> peer_pub_key;
 
-    std::vector<uint8_t> my_nonce;
-    std::vector<uint8_t> peer_nonce;
+    SecureVector my_nonce;
+    SecureVector peer_nonce;
 
     std::queue<std::string> incoming_chats;
 
@@ -94,7 +95,7 @@ private:
     void send_next_chunk();
     void cleanup_transfer();
 
-    std::vector<uint8_t> generate_nonce();
+    SecureVector generate_nonce();
     void send_connection_request(uint16_t type); // Sends own onion and public key
     
     void reset_state(); // Full reset of all session parameters
