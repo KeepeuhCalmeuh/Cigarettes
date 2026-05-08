@@ -235,7 +235,7 @@ std::string CryptoManager::get_fingerprint() const {
     return fp_str;
 }
 
-void CryptoManager::reset_key(std::string passphrase) {
+void CryptoManager::reset_key(const SecureString& passphrase) {
     // Generate new keys
     EVP_PKEY* new_pkey = nullptr;
     EVP_PKEY_CTX* pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, nullptr);

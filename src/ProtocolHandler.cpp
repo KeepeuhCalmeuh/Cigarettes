@@ -362,12 +362,12 @@ void ProtocolHandler::handle_type_09(const std::vector<uint8_t>& payload) {
     }
 
     current_transfer.active = true;
-    current_transfer.filename = filename;
     current_transfer.size = std::stoull(size_str);
     current_transfer.processed = 0;
     current_transfer.is_sending = false;
 
-    std::cout << "\n[Protocol] Incoming file transfer: " << filename << " (" << current_transfer.size << " bytes)\n";
+    std::cout << "\n[Protocol] Incoming file transfer: " << current_transfer.filename  
+              << " (" << current_transfer.size << " bytes)\n";
     std::cout << "[Protocol] Type /accept or /reject to respond.\n> ";
     std::cout.flush();
 }

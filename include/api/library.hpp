@@ -6,6 +6,7 @@
 #include "libNetwork.hpp"
 #include "ProtocolHandler.hpp"
 #include "CommandHandler.hpp"
+#include "MemorySecurity.hpp"
 #include <atomic>
 
 #ifdef _WIN32
@@ -26,7 +27,8 @@ using namespace std;
 
 class CIG_EXPORT Cigarettes {
 public:
-    Cigarettes(std::string passphrase);
+    
+    Cigarettes(const SecureString& passphrase);
 
     Config config; // config instance to manage configuration settings
     HostManager hostManager; // HostManager instance to manage the known hosts and their fingerprints

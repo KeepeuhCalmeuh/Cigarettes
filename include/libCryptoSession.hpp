@@ -27,10 +27,8 @@ public:
 
     bool sessionEstablished();
 private:
-    void compute_ecdh();
-    void derive_hkdf(const SecureVector& shared_secret,
-                 const SecureVector& nonce_a,
-                 const SecureVector& nonce_b);
+    void compute_ecdh(const SecureVector& nonce_a, const SecureVector& nonce_b);
+    void derive_hkdf(const SecureVector& shared_secret, const SecureVector& nonce_a, const SecureVector& nonce_b);
     
     EVP_PKEY* my_private_key = nullptr;
     EVP_PKEY* peer_public_key = nullptr;

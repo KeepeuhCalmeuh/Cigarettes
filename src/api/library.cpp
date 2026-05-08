@@ -2,7 +2,7 @@
 // g++ -shared -fPIC library.cpp -o Cigarettes_lib.so -lssl -lcrypto
 #include "library.hpp"
 
-Cigarettes::Cigarettes(std::string passphrase) 
+Cigarettes::Cigarettes(const SecureString& passphrase) 
     : config(),
       hostManager(),
       cryptoManager(passphrase),
@@ -46,9 +46,12 @@ void Cigarettes::test_function() {
 
 extern "C" {
     CIG_EXPORT Cigarettes* create_object(const char* passphrase) {
-        std::string p = passphrase ? passphrase : "";
-        return new Cigarettes(p);
+    SecureString p;
+    if (passphrase) {
+        p.assign(passphrase, passphrase + strlen(passphrase));
     }
+    return new Cigarettes(p);
+}
 
     CIG_EXPORT void delete_object(Cigarettes* obj) {
         if (obj) delete obj;
