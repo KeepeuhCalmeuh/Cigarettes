@@ -5,7 +5,10 @@
 #include <stdexcept>
 #include <cstring>         
 
-CryptoSession::CryptoSession(EVP_PKEY* personal_private_key, const std::vector<uint8_t>& peer_pub_key_bytes) 
+CryptoSession::CryptoSession(EVP_PKEY* personal_private_key, 
+                             const std::vector<uint8_t>& peer_pub_key_bytes,
+                             const SecureVector& nonce_a,
+                             const SecureVector& nonce_b)
     : my_private_key(personal_private_key) {
     
     if (!my_private_key) throw std::runtime_error("Private key is null");
@@ -27,7 +30,7 @@ CryptoSession::CryptoSession(EVP_PKEY* personal_private_key, const std::vector<u
     }
 
     EVP_PKEY_CTX_free(ctx);
-    compute_ecdh();
+    compute_ecdh(nonce_a, nonce_b);;
 }
 
 CryptoSession::~CryptoSession() {
@@ -35,7 +38,7 @@ CryptoSession::~CryptoSession() {
     // DO NOT FREE my_private_key 
 }
 
-void CryptoSession::compute_ecdh() {
+void CryptoSession::compute_ecdh(const SecureVector& nonce_a, const SecureVector& nonce_b) {
     EVP_PKEY_CTX* ctx = EVP_PKEY_CTX_new(my_private_key, nullptr);
     if (!ctx) throw std::runtime_error("Failed to create CTX");
 
@@ -60,20 +63,27 @@ void CryptoSession::compute_ecdh() {
 
     EVP_PKEY_CTX_free(ctx);
 
-    derive_hkdf(shared_secret);
+    derive_hkdf(shared_secret, nonce_a, nonce_b);;
 }
 
-void CryptoSession::derive_hkdf(const SecureVector& shared_secret) {
+void CryptoSession::derive_hkdf(const SecureVector& shared_secret,
+                                const SecureVector& nonce_a,
+                                const SecureVector& nonce_b) {
     EVP_KDF *kdf = EVP_KDF_fetch(NULL, "HKDF", NULL);
     EVP_KDF_CTX *kctx = EVP_KDF_CTX_new(kdf);
 
+    // Salt = nonce_A || nonce_B (64 bytes au total, les deux nonces de 32 bytes)
+    SecureVector salt;
+    salt.insert(salt.end(), nonce_a.begin(), nonce_a.end());
+    salt.insert(salt.end(), nonce_b.begin(), nonce_b.end());
+
     const char *info = "Cigarettes-session-key";
-    OSSL_PARAM params[5];
-    
+    OSSL_PARAM params[6];
     params[0] = OSSL_PARAM_construct_utf8_string(OSSL_KDF_PARAM_DIGEST, (char*)"SHA256", 0);
     params[1] = OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_KEY, (void*)shared_secret.data(), shared_secret.size());
-    params[2] = OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_INFO, (void*)info, strlen(info));
-    params[3] = OSSL_PARAM_construct_end();
+    params[2] = OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_SALT, (void*)salt.data(), salt.size());
+    params[3] = OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_INFO, (void*)info, strlen(info));
+    params[4] = OSSL_PARAM_construct_end();
 
     session_key.resize(32);
     if (EVP_KDF_derive(kctx, session_key.data(), session_key.size(), params) <= 0) {
@@ -81,8 +91,6 @@ void CryptoSession::derive_hkdf(const SecureVector& shared_secret) {
         EVP_KDF_free(kdf);
         throw std::runtime_error("HKDF derivation failed");
     }
-
-
 
     EVP_KDF_CTX_free(kctx);
     EVP_KDF_free(kdf);

@@ -255,7 +255,12 @@ void ProtocolHandler::handle_type_03(const std::vector<uint8_t>& payload) {
         network->sendMessage(sigB, 0x03);
         
         // Setup session
-        session = std::make_unique<CryptoSession>(crypto_manager->get_private_key(), peer_pub_key);
+        session = std::make_unique<CryptoSession>(
+            crypto_manager->get_private_key(),
+            peer_pub_key,
+            my_nonce,   // nonce_A
+            peer_nonce  // nonce_B
+        );
         current_state = State::ESTABLISHED;
         std::cout << "[Protocol] Session ESTABLISHED (Initiator)!\n";
     }
@@ -267,7 +272,12 @@ void ProtocolHandler::handle_type_03(const std::vector<uint8_t>& payload) {
         
         std::cout << "[Protocol] verified Peer A identity!\n";
         
-        session = std::make_unique<CryptoSession>(crypto_manager->get_private_key(), peer_pub_key);
+        session = std::make_unique<CryptoSession>(
+            crypto_manager->get_private_key(),
+            peer_pub_key,
+            peer_nonce, 
+            my_nonce    
+        );
         current_state = State::ESTABLISHED;
         std::cout << "[Protocol] Session ESTABLISHED (Responder)!\n";
     }

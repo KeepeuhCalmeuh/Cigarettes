@@ -9,7 +9,10 @@
 
 class CryptoSession {
 public:
-    CryptoSession(EVP_PKEY* personal_private_key, const std::vector<uint8_t>& peer_pub_key_bytes);
+    CryptoSession(EVP_PKEY* personal_private_key, 
+              const std::vector<uint8_t>& peer_pub_key_bytes,
+              const SecureVector& nonce_a,
+              const SecureVector& nonce_b);
     ~CryptoSession();
 
     // prohibit copying
@@ -25,7 +28,9 @@ public:
     bool sessionEstablished();
 private:
     void compute_ecdh();
-    void derive_hkdf(const SecureVector& shared_secret);
+    void derive_hkdf(const SecureVector& shared_secret,
+                 const SecureVector& nonce_a,
+                 const SecureVector& nonce_b);
     
     EVP_PKEY* my_private_key = nullptr;
     EVP_PKEY* peer_public_key = nullptr;
