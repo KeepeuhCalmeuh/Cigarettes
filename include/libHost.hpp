@@ -5,12 +5,12 @@
 #include <iostream>
 #include <fstream>
 #include <ctime>
+#include <sys/stat.h>
 #include <nlohmann/json.hpp>
 
-#ifdef _WIN32
-#define EXPORT __declspec(dllexport)
-#else
-#define EXPORT
+#ifndef _WIN32
+#include <fcntl.h>
+#include <unistd.h>
 #endif
 
 using namespace std;

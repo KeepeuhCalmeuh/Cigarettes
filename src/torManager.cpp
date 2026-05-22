@@ -4,6 +4,7 @@
 #include <thread>
 #include <chrono>
 #include <cstdlib>
+#include <fcntl.h>
 
 #ifdef _WIN32
     #include <windows.h>
@@ -55,11 +56,36 @@ static fs::path findExecutableInPath(const std::string& name) {
 
 static bool testTorExecutable(const fs::path& path) {
 #ifdef _WIN32
-    std::string cmd = "\"" + path.string() + "\" --version >nul 2>&1";
+    STARTUPINFOA si = { sizeof(si) };
+    PROCESS_INFORMATION pi;
+    std::string cmd = "\"" + path.string() + "\" --version";
+    if (!CreateProcessA(NULL, (char*)cmd.c_str(), NULL, NULL, FALSE, 
+                        CREATE_NO_WINDOW, NULL, NULL, &si, &pi))
+        return false;
+    WaitForSingleObject(pi.hProcess, 3000);
+    DWORD code = 1;
+    GetExitCodeProcess(pi.hProcess, &code);
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+    return code == 0;
 #else
-    std::string cmd = "\"" + path.string() + "\" --version >/dev/null 2>&1";
+    pid_t pid = fork();
+    if (pid == 0) {
+        int devnull = open("/dev/null", O_WRONLY);
+        if (devnull >= 0) {
+            dup2(devnull, STDOUT_FILENO);
+            dup2(devnull, STDERR_FILENO);
+            close(devnull);
+        }
+        execl(path.c_str(), path.c_str(), "--version", nullptr);
+        exit(1); 
+    }
+    if (pid < 0) return false;
+
+    int status = 0;
+    waitpid(pid, &status, 0);
+    return WIFEXITED(status) && WEXITSTATUS(status) == 0;
 #endif
-    return std::system(cmd.c_str()) == 0;
 }
 
 TorManager::TorManager(int port, const std::string& dir, int s_port, const std::string& ver)
@@ -126,18 +152,42 @@ bool TorManager::ensureTorInstalled() {
 
 bool TorManager::downloadAndExtract(const std::string& url) {
     fs::create_directories(root_path);
-    std::string archive = (root_path / "tor_archive").string();
-    
+    std::string archive_path = (root_path / "tor_archive.tar.gz").string();
+
 #ifdef _WIN32
-    std::string dl_cmd = "powershell -Command \"Invoke-WebRequest -Uri '" + url + "' -OutFile '" + archive + ".zip'\"";
-    std::string ex_cmd = "powershell -Command \"Expand-Archive -Path '" + archive + ".zip' -DestinationPath '" + root_path.string() + "' -Force\"";
+    std::string safe_root = root_path.string();
+    if (safe_root.find('"') != std::string::npos || 
+        safe_root.find('\'') != std::string::npos) {
+        std::cerr << "[Tor] Invalid install_dir path\n";
+        return false;
+    }
+    std::string dl_cmd = "powershell -Command \"Invoke-WebRequest -Uri '" + url + "' -OutFile '" + archive_path + "'\"";
+    std::string ex_cmd = "powershell -Command \"Expand-Archive -Path '" + archive_path + "' -DestinationPath '" + safe_root + "' -Force\"";
     if (system(dl_cmd.c_str()) != 0 || system(ex_cmd.c_str()) != 0) return false;
 #else
-    std::string dl_cmd = "curl -L -o " + archive + ".tar.gz " + url;
-    std::string ex_cmd = "tar -xzf " + archive + ".tar.gz -C " + root_path.string() + " --strip-components=1";
-    if (system(dl_cmd.c_str()) != 0 || system(ex_cmd.c_str()) != 0) return false;
-#endif
-    return ensureTorInstalled(); 
+    pid_t pid = fork();
+    if (pid == 0) {
+        execl("/usr/bin/curl", "curl", "-L", "-o", 
+              archive_path.c_str(), url.c_str(), nullptr);
+        exit(1);
+    }
+    if (pid < 0) return false;
+    int status = 0;
+    waitpid(pid, &status, 0);
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) return false;
+
+    pid = fork();
+    if (pid == 0) {
+        execl("/usr/bin/tar", "tar", "-xzf", archive_path.c_str(),
+              "-C", root_path.string().c_str(), "--strip-components=1", nullptr);
+        exit(1);
+    }
+    if (pid < 0) return false;
+    waitpid(pid, &status, 0);
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) return false;
+    #endif
+
+    return ensureTorInstalled();
 }
 
 bool TorManager::createTorrc() {

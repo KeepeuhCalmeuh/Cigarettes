@@ -37,3 +37,4 @@ notes.txt
 peer_a.log
 peer_b.log
 known_hosts.json
+private_key.pem

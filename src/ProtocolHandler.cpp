@@ -110,6 +110,8 @@ void ProtocolHandler::handle_type_01(const std::vector<uint8_t>& payload) {
     // Parse Payload
     if (payload.empty()) return fail("Empty 0x01");
     uint8_t onion_len = payload[0];
+    if (onion_len < 10 || onion_len > 62) return fail("Invalid onion length");
+
     size_t offset = 1;
     
     if (payload.size() < offset + onion_len) return fail("Invalid 0x01 onion len");
@@ -118,6 +120,7 @@ void ProtocolHandler::handle_type_01(const std::vector<uint8_t>& payload) {
     
     if (payload.size() < offset + 2) return fail("Invalid 0x01 pub_len");
     uint16_t pub_len = payload[offset] | (payload[offset+1] << 8);
+    if (pub_len != 97) return fail("Invalid public key length (expected 97 bytes for secp384r1 uncompressed)");
     offset += 2;
     
     if (payload.size() < offset + pub_len) return fail("Invalid 0x01 pubkey len");
@@ -126,6 +129,7 @@ void ProtocolHandler::handle_type_01(const std::vector<uint8_t>& payload) {
     
     if (payload.size() < offset + 2) return fail("Invalid 0x01 sig_len");
     uint16_t sig_len = payload[offset] | (payload[offset+1] << 8);
+    if (sig_len < 70 || sig_len > 72) return fail("Invalid signature length");
     offset += 2;
     
     if (payload.size() < offset + sig_len) return fail("Invalid 0x01 signature len");
@@ -163,6 +167,7 @@ void ProtocolHandler::handle_type_02(const std::vector<uint8_t>& payload) {
     // Parse Payload
     if (payload.empty()) return fail("Empty 0x02");
     uint8_t onion_len = payload[0];
+    if (onion_len < 10 || onion_len > 62) return fail("Invalid onion length");
     size_t offset = 1;
     
     if (payload.size() < offset + onion_len) return fail("Invalid 0x02 onion len");
@@ -170,6 +175,8 @@ void ProtocolHandler::handle_type_02(const std::vector<uint8_t>& payload) {
     
     if (payload.size() < offset + 2) return fail("Invalid 0x02 pub_len");
     uint16_t pub_len = payload[offset] | (payload[offset+1] << 8);
+    if (pub_len != 97) return fail("Invalid public key length (expected 97 bytes for secp384r1 uncompressed)");
+
     offset += 2;
 
     if (payload.size() < offset + pub_len) return fail("Invalid 0x02 pubkey len");
@@ -178,6 +185,7 @@ void ProtocolHandler::handle_type_02(const std::vector<uint8_t>& payload) {
 
     if (payload.size() < offset + 2) return fail("Invalid 0x02 sig_len");
     uint16_t sig_len = payload[offset] | (payload[offset+1] << 8);
+    if (sig_len < 70 || sig_len > 72) return fail("Invalid signature length");
     offset += 2;
 
     if (payload.size() < offset + sig_len) return fail("Invalid 0x02 signature len");
@@ -240,7 +248,8 @@ void ProtocolHandler::handle_type_03(const std::vector<uint8_t>& payload) {
         
         peer_nonce = SecureVector(payload.begin(), payload.begin() + 32);
         uint16_t sigA_len = payload[32] | (payload[33] << 8);
-        if (payload.size() != 34 + sigA_len) return fail("Invalid SigA len");
+        if (sigA_len < 70 || sigA_len > 72) return fail("Invalid SigA length");
+        if (payload.size() != 34 + sigA_len) return fail("Invalid SigA payload size");
         
         std::vector<uint8_t> sigA(payload.begin() + 34, payload.end());
         

@@ -32,8 +32,8 @@ public:
 
     void connect(const std::string& own_onion_address, const std::vector<uint8_t>& own_fingerprint, 
                  const std::string& peer_onion_address, const std::vector<uint8_t>& peer_fingerprint);
-    void disconnect();       // close the socket + send 0x05 (internal usage io_loop/destructor)
-    void close_connection(); // close the socket WITHOUT sending 0x05 (to be called from ProtocolHandler)
+    void disconnect();       
+    void close_connection(); 
     bool flush_outgoing(int timeout_ms = 500);
     bool isConnected() const;
 
@@ -46,6 +46,9 @@ public:
 private:
     int tor_socks_port;
     int tor_service_port;
+
+    static constexpr size_t MAX_QUEUE_SIZE = 64;
+    static constexpr size_t MAX_MESSAGE_SIZE = 65536;
     
     std::unique_ptr<TorManager> tor_manager;
 

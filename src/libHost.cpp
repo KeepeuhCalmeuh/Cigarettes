@@ -44,10 +44,16 @@ HostManager::HostManager() {
 */
 
 void HostManager::save() const {
-    ofstream file("known_hosts.json");
-    file << hostData.dump(4);
+    const char* path = "known_hosts.json";
+    int fd = open(path, O_CREAT | O_WRONLY | O_TRUNC, 0600);
+    if (fd < 0) {
+        std::cerr << "[HostManager] Failed to open known_hosts.json for writing\n";
+        return;
+    }
+    std::string data = hostData.dump(4);
+    write(fd, data.c_str(), data.size());
+    close(fd);
 }
-
 void HostManager::upsert_host(const string& fingerprint,
                               const string& onion,
                               const string& nickname)

@@ -203,6 +203,11 @@ bool Network::isConnected() const {
 void Network::sendMessage(const std::vector<uint8_t>& payload, uint16_t message_type) {
     std::vector<uint8_t> msg = format_message(payload, message_type);
     std::lock_guard<std::mutex> lock(outgoing_mutex);
+    if (outgoing_messages.size() >= MAX_QUEUE_SIZE) {
+        std::cerr << "[Network] Outgoing queue full, dropping message type 0x" 
+                  << std::hex << message_type << std::dec << "\n";
+        return;
+    }
     outgoing_messages.push(msg);
 }
 
@@ -384,7 +389,7 @@ void Network::io_loop() {
                               | ((uint32_t)recv_buffer[2] << 16)
                               | ((uint32_t)recv_buffer[3] << 24);
 
-            if (body_len > 1024 * 1024) { // Sanity check: reject messages > 1MB
+            if (body_len > MAX_MESSAGE_SIZE) { // Sanity check
                 std::cerr << "[Network] Oversized/corrupt message frame (" << body_len << " bytes), dropping connection\n";
                 disconnect();
                 recv_buffer.clear();
@@ -412,8 +417,16 @@ void Network::io_loop() {
                 }
             }
 
-            std::lock_guard<std::mutex> lock(incoming_mutex);
-            incoming_messages.push(full_msg); // push true body only
+            {
+                std::lock_guard<std::mutex> lock(incoming_mutex);
+                if (incoming_messages.size() >= MAX_QUEUE_SIZE) {
+                    std::cerr << "[Network] Incoming queue full, dropping connection\n";
+                    disconnect();
+                    recv_buffer.clear();
+                    break;
+                }
+                incoming_messages.push(full_msg);
+            }
         }
     }
 }

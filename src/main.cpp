@@ -12,6 +12,7 @@
 #include <queue>
 #include <mutex>
 #include <chrono>
+#include <unistd.h>
 
 std::queue<std::string> user_inputs;
 std::mutex input_mutex;
@@ -110,9 +111,8 @@ _________ .__                            __    __
         }
 
         std::cout << "\nExiting...\n";
-        cin_thread.detach(); // detach because std::getline blocks on stdin
-
-        //close the program
+        ::close(STDIN_FILENO); 
+        if (cin_thread.joinable()) cin_thread.join();
         return 0;
 
     } catch (const std::exception& e) {
