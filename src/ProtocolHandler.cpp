@@ -248,7 +248,7 @@ void ProtocolHandler::handle_type_03(const std::vector<uint8_t>& payload) {
         
         peer_nonce = SecureVector(payload.begin(), payload.begin() + 32);
         uint16_t sigA_len = payload[32] | (payload[33] << 8);
-        if (sigA_len < 70 || sigA_len > 72) return fail("Invalid SigA length");
+        if (sigA_len < 64 || sigA_len > 150) return fail("Invalid SigA length");
         if (payload.size() != 34 + sigA_len) return fail("Invalid SigA payload size");
         
         std::vector<uint8_t> sigA(payload.begin() + 34, payload.end());
