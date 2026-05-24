@@ -129,7 +129,7 @@ void ProtocolHandler::handle_type_01(const std::vector<uint8_t>& payload) {
     
     if (payload.size() < offset + 2) return fail("Invalid 0x01 sig_len");
     uint16_t sig_len = payload[offset] | (payload[offset+1] << 8);
-    if (sig_len < 70 || sig_len > 72) return fail("Invalid signature length");
+    if (sig_len < 64 || sig_len > 150) return fail("Invalid signature length");
     offset += 2;
     
     if (payload.size() < offset + sig_len) return fail("Invalid 0x01 signature len");
@@ -185,7 +185,7 @@ void ProtocolHandler::handle_type_02(const std::vector<uint8_t>& payload) {
 
     if (payload.size() < offset + 2) return fail("Invalid 0x02 sig_len");
     uint16_t sig_len = payload[offset] | (payload[offset+1] << 8);
-    if (sig_len < 70 || sig_len > 72) return fail("Invalid signature length");
+    if (sig_len < 64 || sig_len > 150) return fail("Invalid signature length");
     offset += 2;
 
     if (payload.size() < offset + sig_len) return fail("Invalid 0x02 signature len");
